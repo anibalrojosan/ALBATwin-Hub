@@ -35,8 +35,9 @@ data/processed/*
 *.parquet
 *.npy
 
-# --- Documentation Papers ---
+# --- Documentation Papers and planning documents ---
 docs/papers/*
+SPRINTS.md
 
 # --- IDEs & OS ---
 .vscode/
