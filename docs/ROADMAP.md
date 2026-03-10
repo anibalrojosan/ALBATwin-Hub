@@ -14,7 +14,7 @@
 *   [x] **Requirement Analysis:** Define PRD and User Stories.
 *   [x] **Architecture Design:** Modular system design (Architecture.md).
 *   [x] **Mathematical Specification:** Transcribe ALBA model equations (Math_Model.md).
-*   [ ] **Environment Setup:** Initialize `uv` project, `pyproject.toml`, and git repository.
+*   [x] **Environment Setup:** Initialize `uv` project, `pyproject.toml`, and git repository.
 
 ## Phase 1: Mechanistic Engine (ALBATwin)
 **Goal:** Build a robust Python simulator that reproduces the results of Casagli et al. (2021).

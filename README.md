@@ -27,8 +27,7 @@
 To see the development phases, please refer to the [ROADMAP](docs/ROADMAP.md).
 
 ## References
-- Casagli et al. (2021). *ALBA: A comprehensive growth model to optimize algae-bacteria wastewater treatment*. Water Research.
-- 
+- Casagli et al. (2021). **ALBA: A comprehensive growth model to optimize algae-bacteria wastewater treatment in raceway ponds**. *Water Research*, 190, 116734. [https://doi.org/10.1016/j.watres.2020.116734](https://doi.org/10.1016/j.watres.2020.116734) 
 
 ---
 *Last updated: March 10, 2026 by Anibal Rojo*
