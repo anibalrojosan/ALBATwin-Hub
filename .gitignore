@@ -37,6 +37,7 @@ data/processed/*
 
 # --- Documentation Papers and planning documents ---
 docs/papers/*
+docs/figures/*
 SPRINTS.md
 
 # --- IDEs & OS ---

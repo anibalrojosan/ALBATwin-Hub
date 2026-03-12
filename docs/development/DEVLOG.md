@@ -4,7 +4,29 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+## [2026-03-12] - Phase 1: ALBA Model Analysis & Data Digitization
+
+### Context & Goals
+To ensure the fidelity of the **ALBATwinHub** simulation engine, it is essential to ground the mechanistic model in verified data. I performed a comprehensive review of the original ALBA model (Casagli et al., 2021), focusing on the mathematical backbone of the system. The goal was to digitize these complex kinetic expressions and stoichiometric data from static PDF formats into structured, machine-readable Markdown, laying the foundation for the first iteration of the simulation engine.
+
+### Technical Implementation
+- **Data Digitization:** Extracted and structured critical model parameters from the supplementary material, specifically:
+    - **Growth Kinetics:** Digitized the mathematical expressions governing algal growth rates (SI.1.1).
+    - **Stoichiometry:** Transcribed the stoichiometric matrix and coefficient values (SI.3) into Markdown tables.
+- **Model Verification:** Reviewed the system's stoichiometry to ensure mass balance consistency before implementation.
+- **Documentation:** Created structured Markdown files to serve as the "source of truth" for the Python implementation, facilitating easier review and version control compared to the original PDF documents.
+
+### 💡 Deep Dive: Structured Data for Mechanistic Models
+Transcribing mathematical models from academic papers to code is a critical step often prone to error. By first converting the raw PDF data into structured Markdown tables (rather than jumping straight to code), we create an intermediate verification layer. This allows for easier peer review of the constants and equations against the original paper, ensuring that the `ALBATwin` engine is built on accurate, traceable definitions of the biological system.
+
+### Next Steps
+- Update the `MATH_MODEL.md` file with the verified kinetic equations and stoichiometric matrix.
+- Review how to translatate this mathematical expressions into Python code.
 
 ---
 
