@@ -67,23 +67,28 @@ Encapsulates the system state at time $t$.
 "Biological Brain" of the system. Implements the Petersen Matrix and rate equations.
 *   **Key Methods:**
     *   `calculate_rates(state, env_conditions)`: Returns the vector of 19 process rates ($\rho$).
-    *   `get_stoichiometry()`: Returns the stoichiometric matrix.
 *   **Logic:** Implements Liebig's Law of the Minimum, Monod kinetics, and inhibition terms.
 
-### 4. HydroChemistry (`src/models/chemistry.py`)
+### 4. Stoichiometry (`src/models/stoichiometry.py`)
+"Structural Skeleton" of the biological model. Constructs the Petersen Matrix based on biomass composition.
+*   **Key Methods:**
+    *   `get_matrix(parameters)`: Returns the stoichiometric matrix $\mathbf{S}$ ($19 \times 17$).
+*   **Logic:** Calculates coefficients ($\alpha_{i,j}$) ensuring mass (C, N, P, O, H) and charge balances. Decouples reaction structure from reaction speed.
+
+### 5. HydroChemistry (`src/models/chemistry.py`)
 "Chemical Brain" of the system. Handles fast algebraic equilibria.
 *   **Key Methods:**
     *   `solve_pH(state)`: Uses Newton-Raphson to find $[H^+]$ satisfying charge balance.
     *   `calculate_gas_transfer(state, env_conditions)`: Computes $O_2$, $CO_2$, and $NH_3$ exchange rates based on Henry's Law and diffusivity.
 *   **Logic:** Decouples fast chemical reactions from slow biological dynamics.
 
-### 5. Environment (`src/core/environment.py`)
+### 6. Environment (`src/core/environment.py`)
 Manages external forcing functions.
 *   **Key Methods:**
     *   `get_conditions(t)`: Returns Light ($I_0$), Temperature ($T$), Evaporation ($E$) at time $t$.
     *   `load_weather_data(filepath)`: Parses input CSVs.
 
-### 6. Solver (`src/core/simulation.py`)
+### 7. Solver (`src/core/simulation.py`)
 Orchestrator of the simulation.
 *   **Logic:**
     1.  Initialize $t=0$, State $S_0$.

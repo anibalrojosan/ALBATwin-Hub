@@ -1,138 +1,187 @@
-# Mathematical Model - ALBA (Algae-Bacteria)
+# ALBA Model Specification (Single Source of Truth)
 
-## Table of Contents
-1. [State Variables](#state-variables)
-2. [Biological Kinetics](#biological-kinetics)
-3. [Stoichiometry](#stoichiometry)
-4. [pH and Chemical Equilibria](#ph-and-chemical-equilibria)
-5. [Gas-Liquid Transfer](#gas-liquid-transfer)
-6. [Temperature Dependence](#temperature-dependence)
+This document serves as the technical specification for the ALBA (Algae-Bacteria) model implementation. It aggregates all parameters, equations, and logic required to build the Digital Twin.
+
+**Source:** Casagli et al. (2021). *ALBA: A comprehensive growth model to optimize algae-bacteria wastewater treatment in raceway ponds*. Water Research, 190, 116734.
 
 ---
 
-## State Variables
+## 1. Model Constants & Parameters
 
-The model tracks 17 state variables ($C_i$), typically expressed in $g \cdot m^{-3}$ (equivalent to $mg \cdot L^{-1}$).
+### 1.1 Stoichiometric Parameters
+Values defining the elemental composition of biomass and substrates.
 
-| Symbol | Description | Unit |
-| :--- | :--- | :--- |
-| **Biomass** | | |
-| $X_{ALG}$ | Algal biomass | $gCOD \cdot m^{-3}$ |
-| $X_H$ | Heterotrophic bacteria | $gCOD \cdot m^{-3}$ |
-| $X_{AOB}$ | Ammonia Oxidizing Bacteria | $gCOD \cdot m^{-3}$ |
-| $X_{NOB}$ | Nitrite Oxidizing Bacteria | $gCOD \cdot m^{-3}$ |
-| $X_I$ | Inert particulate organic matter | $gCOD \cdot m^{-3}$ |
-| **Soluble Substrates** | | |
-| $S_S$ | Readily biodegradable organic matter | $gCOD \cdot m^{-3}$ |
-| $S_I$ | Inert soluble organic matter | $gCOD \cdot m^{-3}$ |
-| $S_{NH}$ | Total Ammoniacal Nitrogen ($NH_4^+ + NH_3$) | $gN \cdot m^{-3}$ |
-| $S_{NO2}$ | Nitrite Nitrogen | $gN \cdot m^{-3}$ |
-| $S_{NO3}$ | Nitrate Nitrogen | $gN \cdot m^{-3}$ |
-| $S_{PO4}$ | Total Inorganic Phosphorus | $gP \cdot m^{-3}$ |
-| $S_{O2}$ | Dissolved Oxygen | $gO_2 \cdot m^{-3}$ |
-| $S_{IC}$ | Total Inorganic Carbon ($CO_2 + HCO_3^- + CO_3^{2-}$) | $gC \cdot m^{-3}$ |
-| $S_{ND}$ | Soluble Biodegradable Organic Nitrogen (Urea) | $gN \cdot m^{-3}$ |
-| **Particulate Substrates** | | |
-| $X_S$ | Slowly biodegradable organic matter | $gCOD \cdot m^{-3}$ |
+| Symbol | Value | Unit | Description |
+| :--- | :--- | :--- | :--- |
+| **Biomass Composition** | | | |
+| $i_{C,BM,ALG}$ | 0.327 | $gC \cdot gCOD_{BM}^{-1}$ | Carbon fraction in Algae |
+| $i_{N,BM,ALG}$ | 0.042 | $gN \cdot gCOD_{BM}^{-1}$ | Nitrogen fraction in Algae |
+| $i_{P,BM,ALG}$ | 0.008 | $gP \cdot gCOD_{BM}^{-1}$ | Phosphorus fraction in Algae |
+| $i_{O,BM,ALG}$ | 0.209 | $gO \cdot gCOD_{BM}^{-1}$ | Oxygen fraction in Algae |
+| $i_{H,BM,ALG}$ | 0.050 | $gH \cdot gCOD_{BM}^{-1}$ | Hydrogen fraction in Algae |
+| $i_{C,BM}$ | 0.36 | $gC \cdot gCOD_{BM}^{-1}$ | Carbon fraction in Bacteria (H, AOB, NOB) |
+| $i_{N,BM}$ | 0.084 | $gN \cdot gCOD_{BM}^{-1}$ | Nitrogen fraction in Bacteria |
+| $i_{P,BM}$ | 0.016 | $gP \cdot gCOD_{BM}^{-1}$ | Phosphorus fraction in Bacteria |
+| $i_{O,BM}$ | 0.184 | $gO \cdot gCOD_{BM}^{-1}$ | Oxygen fraction in Bacteria |
+| $i_{H,BM}$ | 0.043 | $gH \cdot gCOD_{BM}^{-1}$ | Hydrogen fraction in Bacteria |
+| **Yields & Fractions** | | | |
+| $Y_H$ | 0.63 | $gCOD_{BM} \cdot gCOD_{S}^{-1}$ | Heterotrophic yield (Aerobic) |
+| $Y_{H,NO2}$ | 0.3 | $gCOD_{BM} \cdot gCOD_{S}^{-1}$ | Heterotrophic yield (Anoxic NO2) |
+| $Y_{H,NO3}$ | 0.5 | $gCOD_{BM} \cdot gCOD_{S}^{-1}$ | Heterotrophic yield (Anoxic NO3) |
+| $Y_{AOB}$ | 0.2 | $gCOD_{BM} \cdot gN^{-1}$ | AOB yield |
+| $Y_{NOB}$ | 0.05 | $gCOD_{BM} \cdot gN^{-1}$ | NOB yield |
+| $f_{Xi,ALG}$ | 0.062 | $gCOD_{Xi} \cdot gCOD_{BM}^{-1}$ | Inert fraction from Algae decay |
+| $f_{XI}$ | 0.1 | $gCOD_{XI} \cdot gCOD_{BM}^{-1}$ | Inert fraction from Bacteria decay |
+| $f_{SI}$ | 0.1 | $gCOD_{SI} \cdot gCOD_{BM}^{-1}$ | Soluble inert fraction from hydrolysis |
 
----
+### 1.2 Kinetic Parameters
+Values governing the speed of biological reactions.
 
-## Biological Kinetics
-
-The model uses **Liebig's Law of the Minimum** for nutrient limitation, rather than multiplicative Monod terms.
-
-### General Growth Rate Equation
-For a biomass $X_i$, the growth rate $\rho_{growth}$ is defined as:
-
-$$ \rho_{growth} = \mu_{max} \cdot f(T) \cdot f(pH) \cdot f(I) \cdot \min \left( \frac{S_1}{K_1 + S_1}, \frac{S_2}{K_2 + S_2}, \dots \right) \cdot X_i $$
-
-Where:
-*   $\mu_{max}$: Maximum specific growth rate ($d^{-1}$)
-*   $f(T)$: Temperature correction factor
-*   $f(pH)$: pH correction factor
-*   $f(I)$: Light correction factor (for algae only)
-*   $S_j$: Limiting substrate concentration
-*   $K_j$: Half-saturation constant
-
-### 1. Algal Kinetics (Processes $\rho_1, \rho_2$)
-**Light Dependence ($f_I$):**
-Uses the Haldane model modified by Bernard & Remond (2012), integrated over depth $z$:
-
-$$ f_I(I) = \frac{I}{I + \frac{\mu_{max}}{\alpha} \left( \frac{I}{I_{opt}} - 1 \right)^2} $$
-
-The average growth rate in the reactor is obtained by integrating $f_I(I(z))$ where $I(z)$ follows Beer-Lambert law:
-$$ I(z) = I_0 \cdot e^{-\epsilon \cdot TSS \cdot z} $$
-
-**Oxygen Inhibition:**
-Photosynthesis is inhibited by high $DO$ concentrations (Hill type):
-$$ f_{O2, inh} = \frac{K_{O2, inh}^n}{S_{O2}^n + K_{O2, inh}^n} $$
-
-### 2. Bacterial Kinetics (Processes $\rho_5 - \rho_{10}$)
-Heterotrophs can grow aerobically ($\rho_5, \rho_6$) or anoxically ($\rho_8, \rho_9$).
-*   **Aerobic:** Depends on $\frac{S_{O2}}{K_{O2} + S_{O2}}$
-*   **Anoxic:** Depends on $\frac{K_{O2}}{K_{O2} + S_{O2}}$ (inhibition by oxygen) and presence of $NO_x$.
-
-### 3. Nitrification (Processes $\rho_{14}, \rho_{17}$)
-Two-step nitrification ($NH_4^+ \to NO_2^- \to NO_3^-$).
-*   **AOB:** Growth on $S_{NH}$. Sensitive to $S_{O2}$ and $S_{IC}$.
-*   **NOB:** Growth on $S_{NO2}$. Sensitive to $S_{O2}$ and $S_{IC}$.
+| Symbol | Value | Unit | Description |
+| :--- | :--- | :--- | :--- |
+| **Algae ($X_{ALG}$)** | | | |
+| $\mu_{max,ALG}$ | 2.5 ± 0.055 | $d^{-1}$ | Max growth rate |
+| $b_{max,r,ALG}$ | 0.1 | $d^{-1}$ | Respiration rate |
+| $b_{max,d,ALG}$ | 0.03 | $d^{-1}$ | Decay rate |
+| $K_{N,ALG}$ | 0.1 | $gN \cdot m^{-3}$ | Half-sat Ammonium |
+| $K_{NO3,ALG}$ | 0.3 | $gN \cdot m^{-3}$ | Half-sat Nitrate |
+| $K_{P,ALG}$ | 0.02 | $gP \cdot m^{-3}$ | Half-sat Phosphorus |
+| $K_{C,ALG}$ | 0.004 | $gC \cdot m^{-3}$ | Half-sat Inorganic Carbon |
+| $K_{O,ALG}$ | 0.2 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen (Respiration) |
+| $EC_{50,O2}$ | 20 | $gO_2 \cdot m^{-3}$ | Oxygen inhibition constant ($k_{DO}$) |
+| $n$ | 15 | - | Hill coefficient for O2 inhibition |
+| $I_{opt}$ | 300 ± 3.8 | $\mu mol \cdot m^{-2} \cdot s^{-1}$ | Optimal Irradiance |
+| $\alpha_{light}$ | 0.01 | $\mu mol^{-1} \cdot m^2 \cdot s$ | Initial slope of PI curve |
+| **Heterotrophs ($X_H$)** | | | |
+| $\mu_{max,H}$ | 6.0 | $d^{-1}$ | Max growth rate |
+| $b_{max,r,H}$ | 0.3 | $d^{-1}$ | Respiration rate |
+| $b_{max,d,H}$ | 0.9 | $d^{-1}$ | Decay rate |
+| $K_{S,H}$ | 4.0 | $gCOD \cdot m^{-3}$ | Half-sat Organic Substrate |
+| $K_{O,H}$ | 0.2 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen |
+| $K_{N,H}$ | 0.05 | $gN \cdot m^{-3}$ | Half-sat Ammonium |
+| $K_{P,H}$ | 0.01 | $gP \cdot m^{-3}$ | Half-sat Phosphorus |
+| $\eta_{ANOX}$ | 0.6 | - | Anoxic reduction factor |
+| **Nitrifiers ($X_{AOB}, X_{NOB}$)** | | | |
+| $\mu_{max,AOB}$ | 0.72 ± 0.0005 | $d^{-1}$ | Max growth rate AOB |
+| $\mu_{max,NOB}$ | 0.65 ± 0.023 | $d^{-1}$ | Max growth rate NOB |
+| $K_{N,AOB}$ | 0.5 | $gN \cdot m^{-3}$ | Half-sat Ammonium (AOB) |
+| $K_{NO2,NOB}$ | 0.5 | $gN \cdot m^{-3}$ | Half-sat Nitrite (NOB) |
+| $K_{O,AOB}$ | 0.8 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen (AOB) |
+| $K_{O,NOB}$ | 2.2 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen (NOB) |
 
 ---
 
-## Stoichiometry
+## 2. State Vector Definition
+The model state vector $\mathbf{y}$ consists of 17 variables.
 
-The model considers 19 biological processes. The mass balance is ensured via a stoichiometric matrix $\mathbf{S}$.
-
-$$ \frac{d\mathbf{C}}{dt} = \mathbf{S}^T \cdot \boldsymbol{\rho} + \text{Transport} + \text{Transfer} $$
-
-Key stoichiometric coefficients ($\alpha$) are derived from the elemental composition of biomass (e.g., $C_{100}H_{183}O_{48}N_{11}P$ for algae).
-
-Example for Algal Growth on Ammonium ($\rho_1$):
-*   Consumes: $S_{NH}$, $S_{PO4}$, $S_{IC}$
-*   Produces: $X_{ALG}$, $S_{O2}$
-
----
-
-## pH and Chemical Equilibria
-
-The pH is calculated by solving the charge balance equation at each time step. The system considers the following equilibria:
-
-1.  **Ammonia:** $NH_4^+ \leftrightarrow NH_3 + H^+$
-2.  **Carbonate:** $CO_2 + H_2O \leftrightarrow HCO_3^- + H^+ \leftrightarrow CO_3^{2-} + 2H^+$
-3.  **Phosphate:** $H_3PO_4 \leftrightarrow H_2PO_4^- \leftrightarrow HPO_4^{2-} \leftrightarrow PO_4^{3-}$
-4.  **Nitrite/Nitrate:** $HNO_2 \leftrightarrow NO_2^-$, $HNO_3 \leftrightarrow NO_3^-$
-5.  **Water:** $H_2O \leftrightarrow H^+ + OH^-$
-
-**Charge Balance Equation:**
-$$ [H^+] + [NH_4^+] + \dots - [OH^-] - [HCO_3^-] - 2[CO_3^{2-}] - \dots + Z_{net} = 0 $$
+| Index | Symbol | Unit | Description |
+| :--- | :--- | :--- | :--- |
+| 1 | $X_{ALG}$ | $gCOD \cdot m^{-3}$ | Algal biomass |
+| 2 | $X_{AOB}$ | $gCOD \cdot m^{-3}$ | Ammonia Oxidizing Bacteria |
+| 3 | $X_{NOB}$ | $gCOD \cdot m^{-3}$ | Nitrite Oxidizing Bacteria |
+| 4 | $X_H$ | $gCOD \cdot m^{-3}$ | Heterotrophic Bacteria |
+| 5 | $X_S$ | $gCOD \cdot m^{-3}$ | Slowly biodegradable organic matter |
+| 6 | $X_I$ | $gCOD \cdot m^{-3}$ | Inert particulate organic matter |
+| 7 | $S_S$ | $gCOD \cdot m^{-3}$ | Readily biodegradable organic matter |
+| 8 | $S_I$ | $gCOD \cdot m^{-3}$ | Inert soluble organic matter |
+| 9 | $S_{IC}$ | $gC \cdot m^{-3}$ | Total Inorganic Carbon ($CO_2 + HCO_3^- + CO_3^{2-}$) |
+| 10 | $S_{ND}$ | $gN \cdot m^{-3}$ | Soluble Organic Nitrogen (Urea) |
+| 11 | $S_{NH}$ | $gN \cdot m^{-3}$ | Total Ammoniacal Nitrogen ($NH_3 + NH_4^+$) |
+| 12 | $S_{NO2}$ | $gN \cdot m^{-3}$ | Total Nitrite Nitrogen ($HNO_2 + NO_2^-$) |
+| 13 | $S_{NO3}$ | $gN \cdot m^{-3}$ | Total Nitrate Nitrogen ($HNO_3 + NO_3^-$) |
+| 14 | $S_{N2}$ | $gN \cdot m^{-3}$ | Nitrogen Gas |
+| 15 | $S_{PO4}$ | $gP \cdot m^{-3}$ | Total Inorganic Phosphorus |
+| 16 | $S_{O2}$ | $gO_2 \cdot m^{-3}$ | Dissolved Oxygen |
+| 17 | $S_{H2O}$ | $gH \cdot m^{-3}$ | Water (Balance term) |
 
 ---
 
-## Gas-Liquid Transfer
+## 3. Algebraic Sub-models
 
-Gas transfer rates ($Q_j$) for $O_2$, $CO_2$, and $NH_3$ are modeled as:
+### 3.1 Temperature Dependence ($f_T$)
+*   **Growth:** Uses CTMI Model (Rosso et al., 1993).
+    $$ f_T(T) = \frac{(T-T_{max})(T-T_{min})^2}{(T_{opt}-T_{min})[(T_{opt}-T_{min})(T-T_{opt}) - (T_{opt}-T_{max})(T_{opt}+T_{min}-2T)]} $$
+*   **Decay:** Uses Arrhenius.
+    $$ f_{T,decay}(T) = \theta^{(T-20)} $$
 
-$$ Q_j = k_L a_j \cdot (S_{j, sat} - S_j) $$
+### 3.2 pH Dependence ($f_{pH}$)
+Uses Cardinal pH Model (CPM).
+$$ f_{pH}(pH) = \frac{(pH - pH_{min})(pH - pH_{max})}{(pH - pH_{min})(pH - pH_{max}) - (pH - pH_{opt})^2} $$
 
-*   **Oxygen:** $k_L a_{O2}$ is a calibrated parameter (e.g., $34 d^{-1}$).
-*   **Others:** Derived from diffusivity ratios:
-    $$ k_L a_j = k_L a_{O2} \cdot \sqrt{\frac{D_j}{D_{O2}}} $$
-*   **Saturation ($S_{sat}$):** Calculated using Henry's Law, dependent on temperature and partial pressure ($p_{gas}$).
+### 3.3 Light Dependence ($f_I$)
+For Algae only. Uses Haldane model (Bernard & Rémond, 2012).
+$$ f_I(I) = \frac{\mu_{max}}{1 + \frac{\mu_{max}}{\alpha} \left(\frac{I}{I_{opt}} - 1\right)^2} $$
+
+### 3.4 Oxygen Inhibition ($f_{DO}$)
+For Algae.
+*   **Growth Inhibition:** $f_{DO,g} = \frac{EC_{50,O2}^n}{S_{O2}^n + EC_{50,O2}^n}$
+*   **Decay Enhancement:** $f_{DO,d} = \frac{S_{O2}^n}{S_{O2}^n + EC_{50,O2}^n}$
+
+---
+
+## 4. Process Rate Equations ($\rho$)
+The system defines 19 biological processes using **Liebig's Law of the Minimum** for nutrient limitation.
+
+### Algae ($X_{ALG}$)
+1.  **Growth on $NH_4$:**
+    $$ \rho_1 = \mu_{max,ALG} \cdot f_I \cdot f_T \cdot f_{pH} \cdot f_{DO,g} \cdot \min\left(\frac{S_{IC}}{K_{C} + S_{IC}}, \frac{S_{NH}}{K_{N} + S_{NH}}, \frac{S_{PO4}}{K_{P} + S_{PO4}}\right) \cdot X_{ALG} $$
+2.  **Growth on $NO_3$:**
+    $$ \rho_2 = \mu_{max,ALG} \cdot f_I \cdot f_T \cdot f_{pH} \cdot f_{DO,g} \cdot \frac{K_{N}}{K_{N} + S_{NH}} \cdot \min\left(\frac{S_{IC}}{K_{C} + S_{IC}}, \frac{S_{NO3}}{K_{NO3} + S_{NO3}}, \frac{S_{PO4}}{K_{P} + S_{PO4}}\right) \cdot X_{ALG} $$
+3.  **Respiration:**
+    $$ \rho_3 = b_{max,r,ALG} \cdot f_T \cdot f_{pH} \cdot \frac{S_{O2}}{K_{O} + S_{O2}} \cdot X_{ALG} $$
+4.  **Decay:**
+    $$ \rho_4 = b_{max,d,ALG} \cdot \theta^{(T-20)} \cdot f_{pH} \cdot f_{DO,d} \cdot X_{ALG} $$
+
+### Heterotrophs ($X_H$)
+5.  **Aerobic Growth ($NH_4$):**
+    $$ \rho_5 = \mu_{max,H} \cdot f_T \cdot f_{pH} \cdot \min\left(\frac{S_S}{K_S + S_S}, \frac{S_{O2}}{K_O + S_{O2}}, \frac{S_{NH}}{K_N + S_{NH}}, \frac{S_{PO4}}{K_P + S_{PO4}}\right) \cdot X_H $$
+6.  **Aerobic Growth ($NO_3$):**
+    $$ \rho_6 = \mu_{max,H} \cdot f_T \cdot f_{pH} \cdot \frac{K_N}{K_N + S_{NH}} \cdot \min\left(\frac{S_S}{K_S + S_S}, \frac{S_{O2}}{K_O + S_{O2}}, \frac{S_{NO3}}{K_{NO3} + S_{NO3}}, \frac{S_{PO4}}{K_P + S_{PO4}}\right) \cdot X_H $$
+7.  **Aerobic Respiration:**
+    $$ \rho_7 = b_{max,r,H} \cdot f_T \cdot f_{pH} \cdot \frac{S_{O2}}{K_O + S_{O2}} \cdot X_H $$
+8.  **Anoxic Growth ($NO_2$):**
+    $$ \rho_8 = \mu_{max,H} \cdot \eta_{ANOX} \cdot f_T \cdot f_{pH} \cdot \frac{K_O}{K_O + S_{O2}} \cdot \min\left(\frac{S_S}{K_S + S_S}, \frac{S_{NO2}}{K_{NO2} + S_{NO2}}, \frac{S_{PO4}}{K_P + S_{PO4}}\right) \cdot X_H $$
+9.  **Anoxic Growth ($NO_3$):**
+    $$ \rho_9 = \mu_{max,H} \cdot \eta_{ANOX} \cdot f_T \cdot f_{pH} \cdot \frac{K_O}{K_O + S_{O2}} \cdot \min\left(\frac{S_S}{K_S + S_S}, \frac{S_{NO3}}{K_{NO3} + S_{NO3}}, \frac{S_{PO4}}{K_P + S_{PO4}}\right) \cdot X_H $$
+10. **Anoxic Respiration:**
+    $$ \rho_{10} = b_{max,r,H} \cdot \eta_{ANOX} \cdot f_T \cdot f_{pH} \cdot \frac{K_O}{K_O + S_{O2}} \cdot \min\left(\frac{S_{NO2}}{K_{NO2} + S_{NO2}}, \frac{S_{NO3}}{K_{NO3} + S_{NO3}}\right) \cdot X_H $$
+
+### Hydrolysis & Decay
+11. **Hydrolysis ($X_S \to S_S$):**
+    $$ \rho_{11} = \mu_{Hyd} \cdot \theta_{HYD}^{(T-20)} \cdot f_{pH} \cdot \frac{X_S/X_H}{K_{HYD} + (X_S/X_H)} \cdot X_H $$
+12. **Ammonification (Urea $\to NH_4$):**
+    $$ \rho_{12} = \mu_{a} \cdot \theta_{AMM}^{(T-20)} \cdot f_{pH} \cdot \frac{S_{ND}}{K_a + S_{ND}} \cdot X_H $$
+13. **Decay ($X_H$):**
+    $$ \rho_{13} = b_{max,d,H} \cdot \theta_H^{(T-20)} \cdot f_{pH} \cdot X_H $$
+
+### Nitrifiers ($X_{AOB}, X_{NOB}$)
+14. **AOB Growth:**
+    $$ \rho_{14} = \mu_{max,AOB} \cdot f_T \cdot f_{pH} \cdot \min\left(\frac{S_{NH}}{K_N + S_{NH}}, \frac{S_{O2}}{K_O + S_{O2}}, \frac{S_{IC}}{K_C + S_{IC}}, \frac{S_{PO4}}{K_P + S_{PO4}}\right) \cdot X_{AOB} $$
+15. **AOB Respiration:**
+    $$ \rho_{15} = b_{max,r,AOB} \cdot f_T \cdot f_{pH} \cdot \frac{S_{O2}}{K_O + S_{O2}} \cdot X_{AOB} $$
+16. **AOB Decay:**
+    $$ \rho_{16} = b_{max,d,AOB} \cdot \theta_{AOB}^{(T-20)} \cdot f_{pH} \cdot X_{AOB} $$
+17. **NOB Growth:**
+    $$ \rho_{17} = \mu_{max,NOB} \cdot f_T \cdot f_{pH} \cdot \min\left(\frac{S_{NO2}}{K_{NO2} + S_{NO2}}, \frac{S_{O2}}{K_O + S_{O2}}, \frac{S_{IC}}{K_C + S_{IC}}, \frac{S_{PO4}}{K_P + S_{PO4}}\right) \cdot X_{NOB} $$
+18. **NOB Respiration:**
+    $$ \rho_{18} = b_{max,r,NOB} \cdot f_T \cdot f_{pH} \cdot \frac{S_{O2}}{K_O + S_{O2}} \cdot X_{NOB} $$
+19. **NOB Decay:**
+    $$ \rho_{19} = b_{max,d,NOB} \cdot \theta_{NOB}^{(T-20)} \cdot f_{pH} \cdot X_{NOB} $$
 
 ---
 
-## Temperature Dependence
+## 5. Stoichiometric Matrix Construction Rules
 
-### Growth Rates (CTMI Model)
-The Cardinal Temperature Model with Inflection (Rosso et al., 1993) is used for all growth rates:
+The stoichiometric coefficients ($\alpha_{i,j}$) for the matrix $\mathbf{S}$ ($19 \times 17$) are calculated dynamically based on mass and charge balances.
 
-$$ f(T) = \frac{(T - T_{max})(T - T_{min})^2}{(T_{opt} - T_{min})[(T_{opt} - T_{min})(T - T_{opt}) - (T_{opt} - T_{max})(T_{opt} + T_{min} - 2T)]} $$
+**Example Rule (Algal Growth on $NH_4$, $\rho_1$):**
+*   $X_{ALG}$ (Production): $+1$
+*   $S_{NH}$ (Consumption): $-i_{N,BM,ALG}$
+*   $S_{PO4}$ (Consumption): $-i_{P,BM,ALG}$
+*   $S_{IC}$ (Consumption): $-i_{C,BM,ALG}$
+*   $S_{O2}$ (Production): $+ \frac{32}{12}i_{C,BM} + \frac{24}{14}i_{N,BM} + \frac{40}{31}i_{P,BM} + 8i_{H,BM} - i_{O,BM}$
 
-Defined by three parameters: $T_{min}$, $T_{opt}$, $T_{max}$.
-
-### Decay and Hydrolysis (Arrhenius)
-Simple exponential dependence:
-$$ k(T) = k_{20} \cdot \theta^{(T - 20)} $$
-
----
-*Last updated: March 10, 2026 by Anibal Rojo*
+**General Logic:**
+For any growth process, the coefficient for $S_{O2}$ is derived from the COD balance:
+$$ \alpha_{O2} = 1 - Y_{biomass} $$
+(Adjusted for units of $gO_2$ vs $gCOD$).
