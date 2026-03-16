@@ -1,0 +1,30 @@
+# Reactor Physical Configuration - ALBA Model (Narbonne HRAP)
+# Units: SI Base (meters, days)
+
+reactor:
+  name: "Narbonne HRABP Raceway"
+  geometry:
+    # Total surface area (m2)
+    surface_area: 56.0
+    # Total length (m)
+    length: 15.0
+    # Water depth (m)
+    nominal_depth: 0.3
+    # Total volume (m3) - From paper: 17 m3
+    total_volume: 17.0
+  
+  operational:
+    # Linear velocity from paddle wheel (m/s)
+    linear_velocity: 0.2 # Sufficent to generate turbulence and mix the reactor, critical for algae growth
+    # Recirculation pump flow rate (m3/d)
+    pump_flow_rate: 182.0 # Very large compared to the volume of the reactor, can be assumed that the reactor is a CSTR
+    # Mass transfer coefficient for Oxygen at 20°C (1/d)
+    kla_20: 34.0
+
+  location:
+    name: "INRAE-LBE, Narbonne, France"
+    latitude: 43.15656
+    longitude: 2.994438
+
+  metadata:
+    description: "High Rate Algal-Bacterial Pond used in Casagli et al. (2021)"
