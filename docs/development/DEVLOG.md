@@ -4,8 +4,65 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-03-13 - Sprint 0: CI/CD and Infrastructure Setup](#2026-03-13---sprint-0-cicd-and-infrastructure-setup)
+- [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+## [2026-03-13] - Sprint 0: CI/CD and Infrastructure Setup
+
+### Context & Goals
+To ensure the reliability and maintainability of the BioProcess-Twin Hub, I established a robust development environment before implementing complex biological logic. The goal was to configure a "Modular Monolith" architecture where backend and frontend coexist in a single installable package, backed by automated quality gates (linting and testing).
+
+### Technical Implementation
+- **Package Structure:** Created `src/bioprocess_twin` as the main package, containing `core`, `models`, and `ui` submodules to support the unified architecture.
+- **Build System:** Configured `pyproject.toml` using `hatchling` as the build backend to support editable installs (`pip install -e .`).
+- **Quality Tools:**
+  - **Testing:** Configured `pytest` with `pytest-cov` to enforce code coverage. Added `tests/conftest.py` and a sanity check suite.
+  - **Linting:** Configured `ruff` to enforce PEP 8 standards and import sorting.
+- **CI/CD Pipeline:** Implemented `.github/workflows/ci.yml` using `uv` for ultra-fast dependency resolution and testing on every push.
+
+### 💡 Deep Dive: Modular Monolith with Hatchling
+A "Modular Monolith" approach was chosen over separating backend and frontend repositories. By using `hatchling` and defining `src/bioprocess_twin` as a single installable package, the Streamlit UI (`src/bioprocess_twin/ui/app.py`) can import core logic (`src/bioprocess_twin/core/`) directly as a library. This eliminates the need for complex REST APIs for internal communication and simplifies the deployment pipeline to a single artifact.
+
+### Next Steps
+- Begin **Sprint 1** (`phase1-01`): Implement `StateVector` and `ReactorConfig`.
+- Translate the mathematical constants from `MATH_MODEL.md` into `src/config/constants.yaml`.
+- Develop the initial unit tests for the reactor geometry and the initial state vector.
+
+---
+
+## [2026-03-12] - Phase 1: Technical Specification & Architecture Definition
+
+### Context & Goals
+The project transitioned from initial research to concrete technical specification. The primary goal was to establish a Single Source of Truth (SSOT) for the ALBA mathematical model to prevent ambiguity during implementation. Additionally, I needed to formalize architectural decisions regarding the simulation engine and data handling to ensure the system can handle the stiffness of bioprocess kinetics.
+
+### Technical Implementation
+- **Mathematical Specification (`docs/MATH_MODEL.md`):**
+  - Consolidated all kinetic and stoichiometric parameters from supplementary materials into a unified configuration table.
+  - Defined the state vector explicitly (17 variables).
+  - Wrote out the 19 specific process rate equations ($\rho$) including Liebig's Law and inhibition terms.
+- **Architecture Update (`docs/ARCHITECTURE.md`):**
+  - Added the `Stoichiometry` module to decouple matrix construction from kinetic rate calculations.
+  - Refined the data flow between Solver, BioKinetics, and HydroChemistry.
+- **Architectural Decision Records (`docs/adrs/`):**
+  - Created 6 ADRs to document critical engineering choices:
+    1.  **Engine:** Python + SciPy + Numba (JIT) for performance.
+    2.  **Stiffness:** Implicit Solvers (LSODA/Radau) for stability.
+    3.  **DAE Strategy:** Nested Algebraic Solver for pH.
+    4.  **Config:** YAML + Pydantic for validation.
+    5.  **Data:** Apache Parquet for efficient I/O.
+    6.  **Units:** Strict SI Base ($g, m^3, d$) standard.
+
+### 💡 Deep Dive: Handling Stiff Bioprocess Systems
+Bioprocess models are notoriously "stiff" because they couple phenomena occurring at vastly different time scales: chemical equilibria (milliseconds), gas transfer (minutes), and biomass growth (days). Using standard explicit solvers (like RK45) forces the time step to be infinitesimally small to maintain stability, making long-term simulations impractical. By adopting implicit solvers (LSODA) and decoupling the algebraic pH equations (Nested Solver approach), we ensure the Digital Twin can simulate weeks of operation in seconds.
+
+### Next Steps
+- Implement the configuration loader using Pydantic (`src/config/`).
+- Create the `Stoichiometry` module to generate the Petersen Matrix dynamically.
+- Implement the `BioKinetics` module with Numba-optimized rate equations.
 
 ---
 
