@@ -80,11 +80,14 @@ def test_config_is_immutable():
 
 def test_volume_calculation_logic():
     """
-    Test a derived property or method. 
+    Test derived properties for volume consistency.
+    The class should expose theoretical volume and discrepancy check.
     """
     config_path = Path("config/reactor_setup.yaml")
     config = ReactorConfig.from_yaml(config_path)
     
-    # If the depth is 0.3m and area is 56m2, the theoretical volume is 16.8
-    theoretical_volume = config.geometry.surface_area * config.geometry.nominal_depth
-    assert abs(theoretical_volume - 16.8) < 1e-6
+    # Theoretical volume: 56m2 * 0.3m = 16.8 m3
+    assert abs(config.theoretical_volume - 16.8) < 1e-6
+    
+    # Reported volume is 17.0 m3, so discrepancy should be 0.2 m3
+    assert abs(config.volume_discrepancy - 0.2) < 1e-6
