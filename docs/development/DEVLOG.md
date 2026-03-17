@@ -4,10 +4,69 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-03-17 - Sprint 1: Implementation of State Vector](#2026-03-17---sprint-1-implementation-of-state-vector)
+- [2026-03-16 - Sprint 1: Implementation of Reactor Configuration](#2026-03-16---sprint-1-implementation-of-reactor-configuration)
 - [2026-03-13 - Sprint 0: CI/CD and Infrastructure Setup](#2026-03-13---sprint-0-cicd-and-infrastructure-setup)
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+## [2026-03-17] - Sprint 1: Implementation of State Vector
+
+### Context & Goals
+The goal was to implement the `StateVector` component, which serves as the central data structure for the ALBA model. This component must bridge the gap between human-readable biological variables and the numerical arrays required by the ODE solver, while enforcing physical constraints (non-negative concentrations). This completes the core data structures for `phase1-01`.
+
+### Technical Implementation
+- **State Vector Schema (`src/bioprocess_twin/core/state.py`):**
+  - Implemented `StateVector` using `pydantic` to manage exactly 17 state variables.
+  - Enforced non-negative constraints on all variables using `Field(..., ge=0.0)`.
+  - Applied `frozen=True` to ensure state immutability at any given time step.
+- **Numerical Integration Support:**
+  - Added `to_array()` method to export states as NumPy arrays in the strict order required by the stoichiometric matrix.
+  - Added `from_array()` class method to reconstruct the `StateVector` from solver outputs.
+- **Testing & Quality:**
+  - Developed `tests/unit/test_state.py` covering instantiation, array mapping, physical validation, and immutability.
+  - Fixed Pydantic V2 deprecation warnings regarding `model_fields` access.
+  - Verified 100% test pass rate and code formatting with `ruff`.
+
+### 💡 Deep Dive: Name-to-Index Mapping in Bioprocess Models
+In large-scale models like ALBA (17 variables), managing array indices manually is a major source of bugs (e.g., swapping $S_{NH}$ with $S_{NO3}$). By using a Pydantic-based `StateVector`, the "Source of Truth" can be centralized for variable ordering. The `to_array` and `from_array` methods act as a translation layer, allowing the simulation logic to use descriptive names (e.g., `state.X_ALG`) while the numerical engine receives the raw vectors it expects.
+
+### Next Steps
+- Begin **Sprint 2** (`phase1-02`): Implementation of the `Stoichiometry` module.
+- Define the dynamic construction of the Petersen Matrix using the parameters from `MATH_MODEL.md`.
+- Implement mass balance verification tests for the stoichiometric coefficients.
+
+---
+
+## [2026-03-16] - Sprint 1: Implementation of Reactor Configuration
+
+### Context & Goals
+The objective was to implement the physical and operational configuration layer for the ALBA model. This layer serves as the foundation for the Digital Twin, ensuring that all physical boundaries (geometry, volume, depth) are correctly validated and immutable during simulation. This work addresses the first part of issue `phase1-01`.
+
+### Technical Implementation
+- **Configuration Schema (`src/bioprocess_twin/core/reactor.py`):**
+  - Implemented `ReactorConfig` using `pydantic` for strict data validation.
+  - Enforced immutability using `ConfigDict(frozen=True)` to prevent accidental changes to the reactor's physical design.
+  - Created nested models for `GeometryConfig`, `OperationalConfig`, and `LocationConfig`.
+- **Process Logic & Engineering Methods:**
+  - Added `calculate_hrt` to compute Hydraulic Retention Time dynamically.
+  - Implemented `theoretical_volume` and `volume_discrepancy` properties to handle the difference between design specifications and ideal geometry ($Area \times Depth$).
+- **Data Integration:**
+  - Created `config/reactor_setup.yaml` with the exact specifications of the Narbonne HRABP reactor (56 m², 17 m³, 0.3 m depth).
+  - Added a robust `from_yaml` loader with root-key validation.
+- **Testing (TDD):**
+  - Developed `tests/unit/test_reactor.py` covering 7 test cases: loading, validation, missing fields, HRT calculation, file-not-found handling, immutability, and volume logic.
+
+### 💡 Deep Dive: Immutability with Pydantic Frozen Models
+In a complex bioprocess simulation, maintaining the integrity of physical constants is critical. By using `frozen=True` in our Pydantic models, we ensure that once the `ReactorConfig` is loaded, it cannot be modified by any other part of the system. This prevents a whole class of "silent bugs" where a developer might accidentally overwrite a geometric parameter (like surface area) mid-simulation, which would invalidate all subsequent mass balance and light penetration calculations.
+
+### Next Steps
+- Complete **Sprint 1** (`phase1-01`): Implement the `StateVector` class.
+- Define the 17 state variables in `src/bioprocess_twin/core/state.py`.
+- Develop unit tests to verify name-to-index mapping and NumPy array conversion for the ODE solver.
 
 ---
 

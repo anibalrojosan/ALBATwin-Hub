@@ -49,3 +49,6 @@ Thumbs.db
 
 # --- Environment Variables ---
 .env
+
+# --- Coverage ---
+.coverage

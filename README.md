@@ -22,6 +22,7 @@ For a more detailed description of the system, please refer to the [ARCHITECTURE
 ## Project Structure
 ```
 ALBATwin-Hub/
+├── config/                 # 📂 Reactor parameters, kinetic and stoichiometric constants
 ├── docs/
 │   ├── development/
 │   │   └── DEVLOG.md       # 📝 Chronological log of technical decisions and daily progress
@@ -30,6 +31,8 @@ ALBATwin-Hub/
 │   ├── PRD.md              # 📋 Core objectives, user stories, and functional requirements
 │   ├── REFERENCES.md       # 📚 Scientific bibliography and data sources
 │   └── ROADMAP.md          # 🗺️ High-level project phases and long-term goals
+├── src/                    # 📂 Source code
+├── tests/                  # 🧪 Unit tests and integration tests
 ├── .gitignore               
 ├── pyproject.toml          # ⚙️ Project metadata and dependency management
 ├── uv.lock                 # 🔒 Locked dependencies
