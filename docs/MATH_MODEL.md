@@ -185,3 +185,5 @@ The stoichiometric coefficients ($\alpha_{i,j}$) for the matrix $\mathbf{S}$ ($1
 For any growth process, the coefficient for $S_{O2}$ is derived from the COD balance:
 $$ \alpha_{O2} = 1 - Y_{biomass} $$
 (Adjusted for units of $gO_2$ vs $gCOD$).
+
+> For the complete Petersen matrix of the ALBA model, see [STOICHIOMETRY.md](STOICHIOMETRY.md).
