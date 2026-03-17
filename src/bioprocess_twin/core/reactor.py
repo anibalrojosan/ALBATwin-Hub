@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class GeometryConfig(BaseModel):
     """Physical dimensions of the reactor."""
+
     model_config = ConfigDict(frozen=True)
 
     surface_area: float = Field(..., gt=0, description="Total surface area in m2")
@@ -17,6 +18,7 @@ class GeometryConfig(BaseModel):
 
 class OperationalConfig(BaseModel):
     """Operational parameters."""
+
     model_config = ConfigDict(frozen=True)
 
     linear_velocity: float = Field(..., ge=0, description="Velocity in m/s")
@@ -26,6 +28,7 @@ class OperationalConfig(BaseModel):
 
 class LocationConfig(BaseModel):
     """Geographic metadata."""
+
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -38,6 +41,7 @@ class ReactorConfig(BaseModel):
     Main configuration for the reactor.
     Aggregates geometry, operation, and location.
     """
+
     model_config = ConfigDict(frozen=True)
 
     name: str
@@ -54,21 +58,21 @@ class ReactorConfig(BaseModel):
 
         with open(path, "r") as f:
             data = yaml.safe_load(f)
-        
+
         # Expects a 'reactor' root key
         if "reactor" not in data:
             raise ValueError("YAML must contain a 'reactor' root key")
-            
+
         return cls(**data["reactor"])
 
     def calculate_hrt(self, influent_flow: float) -> float:
         """
         Calculate Hydraulic Retention Time (HRT).
         HRT = Volume / Q_in
-        
+
         Args:
             influent_flow: Influent flow rate in m3/d
-            
+
         Returns:
             HRT in days
         """
