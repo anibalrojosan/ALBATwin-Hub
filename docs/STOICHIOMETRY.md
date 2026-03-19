@@ -58,7 +58,7 @@ This matrix shows the **fixed chemical composition** of each variable.
 | 3  | C           | $iC_{BM,ALG}$ | $iC_{BM}$ | $iC_{BM}$ | $iC_{BM}$ | $iC_{XS}$ | $iC_{XI}$ | $iC_{SS}$ | $iC_{SI}$ | 1    | 0.43 | 0    | 0     | 0     | 0     | 0     | 0    | 0     |
 | 4  | N           | $iN_{BM,ALG}$ | $iN_{BM}$ | $iN_{BM}$ | $iN_{BM}$ | $iN_{XS}$ | $iN_{XI}$ | $iN_{SS}$ | $iN_{SI}$ | 0    | 1    | 1    | 1     | 1     | 0     | 0     | 0    | 0     |
 | 5  | P           | $iP_{BM,ALG}$ | $iP_{BM}$ | $iP_{BM}$ | $iP_{BM}$ | $iP_{XS}$ | $iP_{XI}$ | $iP_{SS}$ | $iP_{SI}$ | 0    | 0    | 0    | 0     | 0     | 0     | 1     | 0    | 0     |
-| 6  | H (1 → 3)   | $iH_{BM,ALG}$ | $iH_{BM}$ | $iH_{BM}$ | $iH_{BM}$ | 0     | 0     | 0     | 0     | 0.14 | 0.22 | 0.07 | 0.07  | 0.07  | 0     | 0.10  | 0    | 1     |
+| 6  | H (1 → 3)   | $iH_{BM,ALG}$ | $iH_{BM}$ | $iH_{BM}$ | $iH_{BM}$ | 0     | 0     | 0     | 0     | 0 | 0.14 | 0.22 | 0.07  | 0.07  | 0     | 0.10  | 0    | 1     |
 
 Just like other models, like ASM1 and ASM3, ALBA assumes that all bacteria (AOB, NOB, H) have the same empirical formula of biomass. Instead of defining a different composition for each type of bacteria, a standard composition is used for "bacterial biomass" ($C_{100}H_{183}O_{48}N_{11}P$). Therefore:
 *   $iC_{BM}$ (Carbon in biomass) is the same for the three.
