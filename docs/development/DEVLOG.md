@@ -68,6 +68,8 @@ The goal was to implement the `StateVector` component, which serves as the centr
   - Developed `tests/unit/test_state.py` covering instantiation, array mapping, physical validation, and immutability.
   - Fixed Pydantic V2 deprecation warnings regarding `model_fields` access.
   - Verified 100% test pass rate and code formatting with `ruff`.
+- **Documentation (`docs/STOICHIOMETRY.md`):**
+  - Added the stoichiometric matrix and the composition matrix to the documentation. It serves as a quick reference for the stoichiometric coefficients and the composition matrix that will be used in the BioKinetics module.
 
 ### 💡 Deep Dive: Name-to-Index Mapping in Bioprocess Models
 In large-scale models like ALBA (17 variables), managing array indices manually is a major source of bugs (e.g., swapping $S_{NH}$ with $S_{NO3}$). By using a Pydantic-based `StateVector`, the "Source of Truth" can be centralized for variable ordering. The `to_array` and `from_array` methods act as a translation layer, allowing the simulation logic to use descriptive names (e.g., `state.X_ALG`) while the numerical engine receives the raw vectors it expects.

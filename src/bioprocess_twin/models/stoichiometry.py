@@ -3,6 +3,17 @@ ALBA model stoichiometry: Petersen matrix and composition matrix.
 
 Implements the 19x17 Petersen matrix (biological processes) and 6x17 composition
 matrix for mass balance validation. Based on Casagli et al. (2021) and ASM conventions.
+
+**Supplementary material (SI) mapping**
+
+- **Table SI.3.1** (`docs/papers/supplementary_material_ALBA/...SI.3.1...md`): process
+  layout and composition matrix structure. Numeric composition cells here must match
+  `get_composition_matrix()` (the repo table is kept aligned with this module).
+- **Table SI.3.2**: all stoichiometric *parameters* (yields, i_C, i_N, f_XI, …) used in
+  both the composition matrix and Petersen coefficients. Kinetic parameters from
+  other SI tables do **not** appear in **S**; they only scale **ρ** in **dC/dt = Sᵀρ**.
+- **Table SI.3.3**: closed-form expressions for Petersen entries **α**; implemented in
+  `get_petersen_matrix()`.
 """
 
 import numpy as np
@@ -68,10 +79,15 @@ Y_H_NO3 = 0.5
 Y_AOB = 0.2
 Y_NOB = 0.05
 
-# Composition matrix fixed values (SI.3.1)
-# S_IC: O=2.67, C=1, H=0.14
-# S_ND: O=0.57, C=0.43 (i_C_ND), H=0.22 (SI.3.1 table)
-# S_NH: H=0.07
+# Table SI.3.3: fixed S_H2O coefficients for algal processes (g H / g COD_BM)
+ALPHA_ALG_H2O_RHO1 = -0.0404
+ALPHA_ALG_H2O_RHO2 = -0.0464
+ALPHA_ALG_H2O_RHO3 = 0.0404
+
+# Composition matrix fixed values (SI.3.1; cross-check against Casagli et al. 2021 SI)
+# S_IC: O=2.67, C=1, H=0 (COD row for S_IC is 0; see docs/stoichiometry-external-comparison.md)
+# S_ND: O=0.57, C=0.43 (I_C_S_ND), H=0.14
+# S_NH: H=0.22
 # S_NO2, S_NO3: O=2.28, 3.43; H=0.07
 # S_PO4: O=2.07, H=0.10
 # S_O2: O=1
@@ -231,180 +247,203 @@ def get_composition_matrix() -> np.ndarray:
     return comp
 
 
-def _solve_alpha_h2o_from_h_balance(row: np.ndarray, comp: np.ndarray) -> float:
-    """Solve for S_H2O coefficient from H balance: row @ comp[5,:] = 0."""
-    contrib = np.dot(row, comp[5, :])
-    return -contrib / comp[5, S_H2O]
+def _alpha_alg_o2_growth_nh4() -> float:
+    """SI.3.3 rho1: S_O2 coefficient for phototrophic growth on NH4+."""
+    return (
+        -I_O_ALG
+        + (32.0 / 12.0) * I_C_ALG
+        - (24.0 / 14.0) * I_N_ALG
+        + (40.0 / 31.0) * I_P_ALG
+        + 8.0 * I_H_ALG
+    )
 
 
-def _solve_alpha_from_balance(
-    row: np.ndarray, comp: np.ndarray, unknown_idx: int, element_row: int
-) -> float:
-    """Solve for single unknown from one balance equation."""
-    contrib = np.dot(row, comp[element_row, :])
-    return -contrib / comp[element_row, unknown_idx]
+def _alpha_alg_o2_growth_no3() -> float:
+    """SI.3.3 rho2: S_O2 coefficient for phototrophic growth on NO3-."""
+    return (
+        -I_O_ALG
+        + (32.0 / 12.0) * I_C_ALG
+        + (40.0 / 14.0) * I_N_ALG
+        + (40.0 / 31.0) * I_P_ALG
+        + 8.0 * I_H_ALG
+    )
+
+
+def _alpha_alg_o2_respiration() -> float:
+    """SI.3.3 rho3: S_O2 coefficient for algal aerobic respiration."""
+    return (
+        -I_O_ALG
+        - (32.0 / 12.0) * I_C_ALG
+        + (24.0 / 14.0) * I_N_ALG
+        - (40.0 / 31.0) * I_P_ALG
+        - 8.0 * I_H_ALG
+    )
 
 
 def get_petersen_matrix() -> np.ndarray:
     """
     Return the 19x17 Petersen matrix (biological processes only).
 
-    Processes 20-22 (equilibrium) are excluded (hydrochemistry sprint).
+    Stoichiometric coefficients follow Table SI.3.3 in the ALBA supplementary
+    material (docs/papers/supplementary_material_ALBA/). Processes rho20-22
+    (equilibrium) are excluded (hydrochemistry sprint).
     """
-    comp = get_composition_matrix()
     S = np.zeros((N_PROCESSES, N_STATE))
 
-    # --- Process 1: Phototrophic growth on NH4 ---
+    # --- rho1: Phototrophic growth on NH4+ ---
     S[0, X_ALG] = 1
     S[0, S_IC] = -I_C_ALG
     S[0, S_NH] = -I_N_ALG
     S[0, S_PO4] = -I_P_ALG
-    S[0, S_O2] = 1
-    S[0, S_H2O] = _solve_alpha_h2o_from_h_balance(S[0], comp)
+    S[0, S_O2] = _alpha_alg_o2_growth_nh4()
+    S[0, S_H2O] = ALPHA_ALG_H2O_RHO1
 
-    # --- Process 2: Phototrophic growth on NO3 ---
+    # --- rho2: Phototrophic growth on NO3- ---
     S[1, X_ALG] = 1
     S[1, S_IC] = -I_C_ALG
     S[1, S_NO3] = -I_N_ALG
     S[1, S_PO4] = -I_P_ALG
-    S[1, S_H2O] = _solve_alpha_h2o_from_h_balance(S[1], comp)
+    S[1, S_O2] = _alpha_alg_o2_growth_no3()
+    S[1, S_H2O] = ALPHA_ALG_H2O_RHO2
 
-    # --- Process 3: Algae aerobic respiration ---
+    # --- rho3: Aerobic respiration of X_ALG ---
     S[2, X_ALG] = -1
-    S[2, S_O2] = -1
-    S[2, S_IC] = _solve_alpha_from_balance(S[2], comp, S_IC, 2)
-    S[2, S_NH] = _solve_alpha_from_balance(S[2], comp, S_NH, 3)
-    S[2, S_PO4] = _solve_alpha_from_balance(S[2], comp, S_PO4, 4)
-    S[2, S_H2O] = _solve_alpha_h2o_from_h_balance(S[2], comp)
+    S[2, S_IC] = I_C_ALG
+    S[2, S_NH] = I_N_ALG
+    S[2, S_PO4] = I_P_ALG
+    S[2, S_O2] = _alpha_alg_o2_respiration()
+    S[2, S_H2O] = ALPHA_ALG_H2O_RHO3
 
-    # --- Process 4: Algae decay ---
-    # -1 X_ALG -> (1-f_Xi_ALG) X_S, f_Xi_ALG X_I; N, P, C released
+    # --- rho4: Decay of X_ALG ---
     S[3, X_ALG] = -1
     S[3, X_S] = 1 - F_XI_ALG
     S[3, X_I] = F_XI_ALG
-    S[3, S_IC] = _solve_alpha_from_balance(S[3], comp, S_IC, 2)
-    S[3, S_NH] = _solve_alpha_from_balance(S[3], comp, S_NH, 3)
-    S[3, S_PO4] = _solve_alpha_from_balance(S[3], comp, S_PO4, 4)
+    S[3, S_IC] = I_C_ALG - (1 - F_XI_ALG) * I_C_XS - F_XI_ALG * I_C_XI
+    S[3, S_NH] = I_N_ALG - (1 - F_XI_ALG) * I_N_XS - F_XI_ALG * I_N_XI
+    S[3, S_PO4] = I_P_ALG - (1 - F_XI_ALG) * I_P_XS - F_XI_ALG * I_P_XI
 
-    # --- Process 5: Heterotrophic aerobic growth on NH4 ---
+    # --- rho5: Aerobic growth of X_H on NH4+ ---
     S[4, X_H] = 1
     S[4, S_S] = -1 / Y_H
-    S[4, S_IC] = -I_C_BM + I_C_SS / Y_H
-    S[4, S_NH] = -I_N_BM + I_N_SS / Y_H
-    S[4, S_PO4] = -I_P_BM + I_P_SS / Y_H
-    S[4, S_O2] = _solve_alpha_from_balance(S[4], comp, S_O2, 0)  # COD balance
+    S[4, S_IC] = I_C_SS / Y_H - I_C_BM
+    S[4, S_NH] = I_N_SS / Y_H - I_N_BM
+    S[4, S_PO4] = I_P_SS / Y_H - I_P_BM
+    S[4, S_O2] = -(1 / Y_H - 1)
 
-    # --- Process 6: Heterotrophic aerobic growth on NO3 ---
+    # --- rho6: Aerobic growth of X_H on NO3- ---
+    n_no3_r6 = I_N_SS / Y_H - I_N_BM
     S[5, X_H] = 1
     S[5, S_S] = -1 / Y_H
-    S[5, S_IC] = -I_C_BM + I_C_SS / Y_H
-    S[5, S_NO3] = -I_N_BM + I_N_SS / Y_H
-    S[5, S_PO4] = -I_P_BM + I_P_SS / Y_H
-    S[5, S_O2] = _solve_alpha_from_balance(S[5], comp, S_O2, 0)  # COD balance
+    S[5, S_IC] = I_C_SS / Y_H - I_C_BM
+    S[5, S_NO3] = n_no3_r6
+    S[5, S_PO4] = I_P_SS / Y_H - I_P_BM
+    S[5, S_O2] = -(1 / Y_H - 1) - (64.0 / 14.0) * n_no3_r6
 
-    # --- Process 7: Heterotrophic aerobic respiration ---
+    # --- rho7: Aerobic respiration of X_H ---
     S[6, X_H] = -1
-    S[6, S_IC] = _solve_alpha_from_balance(S[6], comp, S_IC, 2)
-    S[6, S_NH] = _solve_alpha_from_balance(S[6], comp, S_NH, 3)
-    S[6, S_PO4] = _solve_alpha_from_balance(S[6], comp, S_PO4, 4)
-    S[6, S_O2] = _solve_alpha_from_balance(S[6], comp, S_O2, 0)  # COD balance
+    S[6, S_IC] = I_C_BM
+    S[6, S_NH] = I_N_BM
+    S[6, S_PO4] = I_P_BM
+    S[6, S_O2] = -1
 
-    # --- Process 8: Anoxic growth on NO3 ---
-    # 2.86 gCOD/gN for NO3 reduction (ASM convention)
+    # --- rho8: Anoxic growth of X_H on NO3- (SI: 28/80 factor) ---
+    yld = Y_H_NO3
+    oex = 1 / yld - 1
     S[7, X_H] = 1
-    S[7, S_S] = -1 / Y_H_NO3
-    S[7, S_IC] = -I_C_BM + I_C_SS / Y_H_NO3
-    S[7, S_NH] = -I_N_BM + I_N_SS / Y_H_NO3
-    S[7, S_NO3] = -(1 - Y_H_NO3) / Y_H_NO3 / 2.86
-    S[7, S_N2] = (1 - Y_H_NO3) / Y_H_NO3 / 2.86
-    S[7, S_PO4] = -I_P_BM + I_P_SS / Y_H_NO3
+    S[7, S_S] = -1 / yld
+    S[7, S_IC] = I_C_SS / yld - I_C_BM
+    S[7, S_NH] = I_N_SS / yld - I_N_BM
+    S[7, S_NO3] = -(28.0 / 80.0) * oex
+    S[7, S_N2] = (28.0 / 80.0) * oex
+    S[7, S_PO4] = I_P_SS / yld - I_P_BM
 
-    # --- Process 9: Anoxic growth on NO2 ---
-    # 1.71 gCOD/gN for NO2 reduction (ASM convention)
+    # --- rho9: Anoxic growth of X_H on NO2- (SI: 28/48 factor) ---
+    yld2 = Y_H_NO2
+    oex2 = 1 / yld2 - 1
     S[8, X_H] = 1
-    S[8, S_S] = -1 / Y_H_NO2
-    S[8, S_IC] = -I_C_BM + I_C_SS / Y_H_NO2
-    S[8, S_NH] = -I_N_BM + I_N_SS / Y_H_NO2
-    S[8, S_NO2] = -(1 - Y_H_NO2) / Y_H_NO2 / 1.71
-    S[8, S_N2] = (1 - Y_H_NO2) / Y_H_NO2 / 1.71
-    S[8, S_PO4] = -I_P_BM + I_P_SS / Y_H_NO2
+    S[8, S_S] = -1 / yld2
+    S[8, S_IC] = I_C_SS / yld2 - I_C_BM
+    S[8, S_NH] = I_N_SS / yld2 - I_N_BM
+    S[8, S_NO2] = -(28.0 / 48.0) * oex2
+    S[8, S_N2] = (28.0 / 48.0) * oex2
+    S[8, S_PO4] = I_P_SS / yld2 - I_P_BM
 
-    # --- Process 10: Anoxic respiration (NO2 and NO3) ---
-    # Endogenous respiration: N to S_NH, use NO3 as electron acceptor
+    # --- rho10: Anoxic respiration of X_H on NO2- and NO3- ---
     S[9, X_H] = -1
+    S[9, S_IC] = I_C_BM
     S[9, S_NH] = I_N_BM
-    S[9, S_NO3] = -1 / 2.86
-    S[9, S_N2] = 0.5 / 2.86
-    S[9, S_IC] = _solve_alpha_from_balance(S[9], comp, S_IC, 2)
-    S[9, S_PO4] = _solve_alpha_from_balance(S[9], comp, S_PO4, 4)
+    S[9, S_NO2] = -14.0 / 64.0
+    S[9, S_NO3] = -14.0 / 64.0
+    S[9, S_N2] = 28.0 / 64.0
+    S[9, S_PO4] = I_P_BM
 
-    # --- Process 11: Hydrolysis ---
+    # --- rho11: Hydrolysis of slowly biodegradable COD ---
     S[10, X_S] = -1
     S[10, S_S] = 1 - F_SI
     S[10, S_I] = F_SI
-    S[10, S_IC] = _solve_alpha_from_balance(S[10], comp, S_IC, 2)
-    S[10, S_NH] = _solve_alpha_from_balance(S[10], comp, S_NH, 3)
-    S[10, S_PO4] = _solve_alpha_from_balance(S[10], comp, S_PO4, 4)
+    S[10, S_IC] = I_C_XS - (1 - F_SI) * I_C_SS - F_SI * I_C_SI
+    S[10, S_NH] = I_N_XS - (1 - F_SI) * I_N_SS - F_SI * I_N_SI
+    S[10, S_PO4] = I_P_XS - (1 - F_SI) * I_P_SS - F_SI * I_P_SI
 
-    # --- Process 12: Urea hydrolysis ---
+    # --- rho12: Hydrolysis of urea ---
+    S[11, S_IC] = I_C_ND
     S[11, S_ND] = -1
     S[11, S_NH] = 1
-    S[11, S_IC] = I_C_ND  # Carbon from urea
-    S[11, S_H2O] = _solve_alpha_h2o_from_h_balance(S[11], comp)
+    S[11, S_H2O] = I_H_ND
 
-    # --- Process 13: Heterotrophic decay ---
+    # --- rho13: Decay of X_H ---
     S[12, X_H] = -1
     S[12, X_S] = 1 - F_XI
     S[12, X_I] = F_XI
-    S[12, S_IC] = _solve_alpha_from_balance(S[12], comp, S_IC, 2)
-    S[12, S_NH] = _solve_alpha_from_balance(S[12], comp, S_NH, 3)
-    S[12, S_PO4] = _solve_alpha_from_balance(S[12], comp, S_PO4, 4)
+    S[12, S_IC] = I_C_BM - (1 - F_XI) * I_C_XS - F_XI * I_C_XI
+    S[12, S_NH] = I_N_BM - (1 - F_XI) * I_N_XS - F_XI * I_N_XI
+    S[12, S_PO4] = I_P_BM - (1 - F_XI) * I_P_XS - F_XI * I_P_XI
 
-    # --- Process 14: AOB growth ---
+    # --- rho14: Aerobic growth of X_AOB on NH4+ ---
     S[13, X_AOB] = 1
     S[13, S_IC] = -I_C_BM
-    S[13, S_NH] = -1 / Y_AOB
+    S[13, S_NH] = -1 / Y_AOB - I_N_BM
     S[13, S_NO2] = 1 / Y_AOB
     S[13, S_PO4] = -I_P_BM
-    S[13, S_O2] = _solve_alpha_from_balance(S[13], comp, S_O2, 0)  # COD balance
+    S[13, S_O2] = 1 - (48.0 / 14.0) / Y_AOB
 
-    # --- Process 15: AOB respiration ---
+    # --- rho15: Aerobic respiration of X_AOB ---
     S[14, X_AOB] = -1
-    S[14, S_IC] = _solve_alpha_from_balance(S[14], comp, S_IC, 2)
-    S[14, S_NH] = _solve_alpha_from_balance(S[14], comp, S_NH, 3)
-    S[14, S_PO4] = _solve_alpha_from_balance(S[14], comp, S_PO4, 4)
-    S[14, S_O2] = _solve_alpha_from_balance(S[14], comp, S_O2, 0)
+    S[14, S_IC] = I_C_BM
+    S[14, S_NH] = I_N_BM
+    S[14, S_PO4] = I_P_BM
+    S[14, S_O2] = -1
 
-    # --- Process 16: AOB decay ---
+    # --- rho16: Decay of X_AOB ---
     S[15, X_AOB] = -1
     S[15, X_S] = 1 - F_XI
     S[15, X_I] = F_XI
-    S[15, S_IC] = _solve_alpha_from_balance(S[15], comp, S_IC, 2)
-    S[15, S_NH] = _solve_alpha_from_balance(S[15], comp, S_NH, 3)
-    S[15, S_PO4] = _solve_alpha_from_balance(S[15], comp, S_PO4, 4)
+    S[15, S_IC] = I_C_BM - (1 - F_XI) * I_C_XS - F_XI * I_C_XI
+    S[15, S_NH] = I_N_BM - (1 - F_XI) * I_N_XS - F_XI * I_N_XI
+    S[15, S_PO4] = I_P_BM - (1 - F_XI) * I_P_XS - F_XI * I_P_XI
 
-    # --- Process 17: NOB growth ---
+    # --- rho17: Aerobic growth of X_NOB on NO2- ---
     S[16, X_NOB] = 1
     S[16, S_IC] = -I_C_BM
-    S[16, S_NH] = 0
+    S[16, S_NH] = -I_N_BM
     S[16, S_NO2] = -1 / Y_NOB
     S[16, S_NO3] = 1 / Y_NOB
     S[16, S_PO4] = -I_P_BM
-    S[16, S_O2] = _solve_alpha_from_balance(S[16], comp, S_O2, 0)  # COD balance
+    S[16, S_O2] = 1 - (16.0 / 14.0) / Y_NOB
 
-    # --- Process 18: NOB respiration ---
+    # --- rho18: Aerobic respiration of X_NOB ---
     S[17, X_NOB] = -1
-    S[17, S_IC] = _solve_alpha_from_balance(S[17], comp, S_IC, 2)
-    S[17, S_NH] = _solve_alpha_from_balance(S[17], comp, S_NH, 3)
-    S[17, S_PO4] = _solve_alpha_from_balance(S[17], comp, S_PO4, 4)
-    S[17, S_O2] = _solve_alpha_from_balance(S[17], comp, S_O2, 0)
+    S[17, S_IC] = I_C_BM
+    S[17, S_NH] = I_N_BM
+    S[17, S_PO4] = I_P_BM
+    S[17, S_O2] = -1
 
-    # --- Process 19: NOB decay ---
+    # --- rho19: Decay of X_NOB ---
     S[18, X_NOB] = -1
     S[18, X_S] = 1 - F_XI
     S[18, X_I] = F_XI
-    S[18, S_IC] = _solve_alpha_from_balance(S[18], comp, S_IC, 2)
-    S[18, S_NH] = _solve_alpha_from_balance(S[18], comp, S_NH, 3)
-    S[18, S_PO4] = _solve_alpha_from_balance(S[18], comp, S_PO4, 4)
+    S[18, S_IC] = I_C_BM - (1 - F_XI) * I_C_XS - F_XI * I_C_XI
+    S[18, S_NH] = I_N_BM - (1 - F_XI) * I_N_XS - F_XI * I_N_XI
+    S[18, S_PO4] = I_P_BM - (1 - F_XI) * I_P_XS - F_XI * I_P_XI
 
     return S

@@ -16,7 +16,7 @@ Where $\mathbf{S}$ is this matrix and $\boldsymbol{\rho}$ are the reaction rates
 |                          | gCOD/m³| gCOD/m³| gCOD/m³| gCOD/m³| gCOD/m³| gCOD/m³| gCOD/m³| gCOD/m³| gCm⁻³ | gNm⁻³ | gNm⁻³ | gNm⁻³ | gNm⁻³ | gNm⁻³ | gPm⁻³ | gO₂m⁻³| gHm⁻³ |
 | **Algae** | | | | | | | | | | | | | | | | | | |
 | 1. Phototrophic growth on NH₄⁺         | 1     |       |       |      |      |      |       |       | α₁,₉  |       | α₁,₁₁ |       |       |       | α₁,₁₅ | 1     | α₁,₁₇ |
-| 2. Phototrophic growth on NO₃⁻         | 1     |       |       |      |      |      |       |       | α₂,₉  |       |       |       | α₂,₁₃ |       | α₂,₁₅ |       | α₂,₁₇ |
+| 2. Phototrophic growth on NO₃⁻         | 1     |       |       |      |      |      |       |       | α₂,₉  |       |       |       | α₂,₁₃ |       | α₂,₁₅ |    1   | α₂,₁₇ |
 | 3. Aerobic respiration                 | -1    |       |       |      |      |      |       |       | α₃,₉  |       | α₃,₁₁ |       |       |       | α₃,₁₅ | -1    | α₃,₁₇ |
 | 4. Decay                               | -1    |       |       |      | α₄,₅ | α₄,₆ |       |       | α₄,₉  |       | α₄,₁₁ |       |       |       | α₄,₁₅ |       |       |
 **Heterotrophic bacteria** | | | | | | | | | | | | | | | | | | |
@@ -53,10 +53,10 @@ This matrix shows the **fixed chemical composition** of each variable.
 
 | k↓ | j→ | X_ALG | X_AOB | X_NOB | X_H  | X_S  | X_I  | S_S   | S_I   | S_IC | S_ND | S_NH | S_NO2 | S_NO3 | S_N2 | S_PO4 | S_O2 | S_H2O |
 |----|----|-------|-------|-------|------|------|------|-------|-------|------|------|------|-------|-------|------|-------|------|-------|
-| 1  | COD (4 → 19) | 1     | 1     | 1     | 1    | 1    | 1    | 1     | 1     | 1    | 0    | 0    | -3.43 | -4.57 | -1.71| 0     | -1   | 0     |
+| 1  | COD (4 → 19) | 1     | 1     | 1     | 1    | 1    | 1    | 1     | 1     | 0    | 0    | 0    | -3.43 | -4.57 | -1.71| 0     | -1   | 0     |
 | 2  | O (1 → 3)    | $iO_{BM,ALG}$ | $iO_{BM}$ | $iO_{BM}$ | $iO_{BM}$ | $iO_{XS}$ | $iO_{XI}$ | $iO_{SS}$ | $iO_{SI}$ | 2.67 | 0.57 | 0    | 2.28  | 3.43  | 0     | 2.07  | 1    | 7.94  |
 | 3  | C           | $iC_{BM,ALG}$ | $iC_{BM}$ | $iC_{BM}$ | $iC_{BM}$ | $iC_{XS}$ | $iC_{XI}$ | $iC_{SS}$ | $iC_{SI}$ | 1    | 0.43 | 0    | 0     | 0     | 0     | 0     | 0    | 0     |
-| 4  | N           | $iN_{BM,ALG}$ | $iN_{BM}$ | $iN_{BM}$ | $iN_{BM}$ | $iN_{XS}$ | $iN_{XI}$ | $iN_{SS}$ | $iN_{SI}$ | 0    | 1    | 1    | 1     | 1     | 0     | 0     | 0    | 0     |
+| 4  | N           | $iN_{BM,ALG}$ | $iN_{BM}$ | $iN_{BM}$ | $iN_{BM}$ | $iN_{XS}$ | $iN_{XI}$ | $iN_{SS}$ | $iN_{SI}$ | 0    | 1    | 1    | 1     | 1     | 1     | 0     | 0    | 0     |
 | 5  | P           | $iP_{BM,ALG}$ | $iP_{BM}$ | $iP_{BM}$ | $iP_{BM}$ | $iP_{XS}$ | $iP_{XI}$ | $iP_{SS}$ | $iP_{SI}$ | 0    | 0    | 0    | 0     | 0     | 0     | 1     | 0    | 0     |
 | 6  | H (1 → 3)   | $iH_{BM,ALG}$ | $iH_{BM}$ | $iH_{BM}$ | $iH_{BM}$ | 0     | 0     | 0     | 0     | 0 | 0.14 | 0.22 | 0.07  | 0.07  | 0     | 0.10  | 0    | 1     |
 
@@ -74,3 +74,5 @@ It has two critical uses:
 ---
 
 **Note:** The values like $iO_{BM,ALG}$, $iC_{BM,ALG}$, etc., are specific parameters of the ALBA model and must be replaced by their numerical values according to the table SI.3.2 of the original document.
+
+**See also:** [Stoichiometry external comparison](stoichiometry-external-comparison.md) — alignment of code and docs with the Casagli SI, comparison to ASM1/ASM3, benchmark/software references, and ALBA-specific $ COD / (S_{H2O}) $ conventions.
