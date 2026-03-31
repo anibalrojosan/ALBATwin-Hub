@@ -32,6 +32,7 @@ dev = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests/unit"]
 python_files = ["test_*.py"]
 addopts = "--cov=src/bioprocess_twin --cov-report=term-missing"
 
