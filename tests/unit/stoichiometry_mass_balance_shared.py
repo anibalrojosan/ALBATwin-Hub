@@ -10,7 +10,7 @@ ELEMENT_NAMES = ["COD", "O", "C", "N", "P", "H"]
 
 # O/H/COD still have residuals vs composition matrix (see DEVLOG). Target: 1e-6 once
 # stoichiometry matches I across all processes; tightening to 1e-6 fails until then.
-MASS_BALANCE_ATOL = 6.0
+MASS_BALANCE_ATOL = 0.1
 
 # Row order must match get_petersen_matrix() (rho1..rho19)
 PETERSEN_PROCESS_LABELS = (

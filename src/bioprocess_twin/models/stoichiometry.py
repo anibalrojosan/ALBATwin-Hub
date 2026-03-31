@@ -272,7 +272,7 @@ def _alpha_alg_o2_growth_no3() -> float:
 def _alpha_alg_o2_respiration() -> float:
     """SI.3.3 rho3: S_O2 coefficient for algal aerobic respiration."""
     return (
-        -I_O_ALG
+        + I_O_ALG
         - (32.0 / 12.0) * I_C_ALG
         + (24.0 / 14.0) * I_N_ALG
         - (40.0 / 31.0) * I_P_ALG
@@ -402,7 +402,7 @@ def get_petersen_matrix() -> np.ndarray:
     # --- rho14: Aerobic growth of X_AOB on NH4+ ---
     S[13, X_AOB] = 1
     S[13, S_IC] = -I_C_BM
-    S[13, S_NH] = -1 / Y_AOB - I_N_BM
+    S[13, S_NH] = -I_N_BM - (1 / Y_AOB) 
     S[13, S_NO2] = 1 / Y_AOB
     S[13, S_PO4] = -I_P_BM
     S[13, S_O2] = 1 - (48.0 / 14.0) / Y_AOB
