@@ -30,8 +30,8 @@ Mass balance tests still showed large residuals for **oxygen** and **hydrogen** 
 The test enforces $\sum_j S_{i,j} I_{k,j} \approx 0$ for every process $i$ and element $k$. ASM-class matrices are usually built so **COD** (electron balance) and **nutrients** close for design variables; **water** is treated as infinite and **pH** as buffered, so **atomic O and H** are often not closed in `S`. ALBA mixes **algal** stoichiometry (with $S_{\mathrm{H2O}}$) and **bacterial** blocks inherited from that tradition. For rho14, $I_{\mathrm{O}}$ for $\mathrm{NH_4^+}$ is zero (no O in the ion), while $\mathrm{NO_2^-}$ carries oxygen; without a compensating **water** (or equivalent) term in `S`, the same SI numbers that are correct for ASM-style energy bookkeeping can still fail a **full** O (and H) matrix audit—exactly what [**`Balance of oxygen for rho14`**](../mass_balances/balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md) quantifies.
 
 ### Next Steps
-- Decide project policy: **(a)** extend bacterial Petersen rows (and possibly state vector) for strict O/H closure per RWQM-style practice, or **(b)** document that strict elemental O/H checks are **out of scope** for the ALBA SI as implemented and narrow tests accordingly.
-- If (a), derive and implement \(S_{\mathrm{H2O}}\) (and charge balance if needed) for rho14 and peer bacterial processes; re-tighten `MASS_BALANCE_ATOL` toward `1e-6`.
+- **Policy (2026-04-14):** **(a)** adopted — extend the model for strict O/H closure; recorded in [**ADR 007**](../adrs/007-elemental-mass-balance-oh-closure.md) (also linked from `SPRINTS.md` and `docs/STOICHIOMETRY.md`).
+- Derive and implement \(S_{\mathrm{H2O}}\) (and charge balance if needed) for rho14 and peer bacterial processes; re-tighten `MASS_BALANCE_ATOL` toward `1e-6`.
 - Cross-check any proposed coefficients against Casagli SI and primary references before merging.
 
 ---

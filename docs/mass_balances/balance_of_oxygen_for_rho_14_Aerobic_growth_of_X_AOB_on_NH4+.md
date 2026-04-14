@@ -57,13 +57,13 @@ With `Y_AOB = 0.2` → `1/Y_AOB = 5`.
 
 ## 3. Expression of the balance (what the test evaluates)
 
-Para el proceso 14 y el elemento O:
+ For the process 14 and the element O:
 
 $$
 B_{14,\mathrm{O}} = \sum_{j} S_{13,j}\, I_{\mathrm{O},j}.
 $$
 
-Solo contribuyen columnas con $S_{13,j}\neq 0$ y $I_{\mathrm{O},j}$ relevante:
+Only columns with $S_{13,j}\neq 0$ and $I_{\mathrm{O},j}$ relevant contribute:
 
 $$
 \begin{aligned}
@@ -81,7 +81,7 @@ Substituting numbers from the code (`I_C_BM=0.36`, `I_P_BM=0.016`, etc.):
 
 | Term | Calculation | Approximate value |
 |--------|---------|----------------|
-| Biomasa | $1 \times 0.184$ | $+0.184$ |
+| Biomass | $1 \times 0.184$ | $+0.184$ |
 | $S_{\mathrm{IC}}$ | $-0.36 \times 2.67$ | $-0.9612$ |
 | $S_{\mathrm{NO2}}$ | $5 \times 2.28$ | $+11.4$ |
 | $S_{\mathrm{PO4}}$ | $-0.016 \times 2.07$ | $-0.03312$ |
