@@ -8,10 +8,6 @@ from bioprocess_twin.models.stoichiometry import get_composition_matrix, get_pet
 
 ELEMENT_NAMES = ["COD", "O", "C", "N", "P", "H"]
 
-# O/H/COD still have residuals vs composition matrix (see DEVLOG). Target: 1e-6 once
-# stoichiometry matches I across all processes; tightening to 1e-6 fails until then.
-MASS_BALANCE_ATOL = 0.1
-
 # Row order must match get_petersen_matrix() (rho1..rho19)
 PETERSEN_PROCESS_LABELS = (
     "rho1: phototrophic growth X_ALG (NH4+)",
@@ -75,8 +71,6 @@ def format_mass_balance_all_cells(balance: np.ndarray, atol: float) -> str:
             r = float(balance[i, k])
             a = abs(r)
             ok = "OK" if a <= atol else "FAIL"
-            rows.append(
-                f"{n:4d} rho{i + 1:2d} {ELEMENT_NAMES[k]:>4}  {r:+.6e}  {a:12.6e}  {ok}"
-            )
+            rows.append(f"{n:4d} rho{i + 1:2d} {ELEMENT_NAMES[k]:>4}  {r:+.6e}  {a:12.6e}  {ok}")
     assert n == 114, f"expected 114 cells, got {n}"
     return "\n".join(rows)

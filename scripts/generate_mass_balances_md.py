@@ -16,6 +16,7 @@ from bioprocess_twin.models.stoichiometry import (  # noqa: E402
     get_composition_matrix,
     get_petersen_matrix,
 )
+from bioprocess_twin.stoichiometry_validation import MASS_BALANCE_ATOL  # noqa: E402
 
 STATE_LABELS = (
     "X_ALG",
@@ -61,8 +62,6 @@ PETERSEN_PROCESS_LABELS = (
     "rho19: decay X_NOB",
 )
 
-MASS_BALANCE_ATOL = 0.1
-
 
 def _fmt_float(x: float) -> str:
     if x == 0.0:
@@ -105,10 +104,11 @@ def generate() -> str:
     )
     lines.append("")
     lines.append(
-        "**Tolerance** for OK/FAIL labels matches "
-        "`tests/unit/stoichiometry_mass_balance_shared.py`: "
-        f"`MASS_BALANCE_ATOL = {MASS_BALANCE_ATOL:g}` "
-        r"(|residual| $\le$ atol $\Rightarrow$ OK)."
+        "**Tolerance:** `MASS_BALANCE_ATOL` from "
+        "`src/bioprocess_twin/stoichiometry_validation.py` "
+        f"(currently `{MASS_BALANCE_ATOL:g}`; tests import it via "
+        "`tests/unit/stoichiometry_mass_balance_shared.py`). "
+        r"OK if $|B_{i,k}| \le$ atol."
     )
     lines.append("")
     lines.append("**Regeneration:** `uv run python scripts/generate_mass_balances_md.py`")
