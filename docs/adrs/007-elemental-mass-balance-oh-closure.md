@@ -66,6 +66,7 @@ Option **(b)** is **rejected** as the long-term stance for this product, though 
 - Tests: `tests/unit/stoichiometry_mass_balance_shared.py` (`MASS_BALANCE_ATOL`), `tests/unit/test_stoichiometry_mass_balance_cells.py`, `tests/unit/test_stoichiometry.py`.
 - Documentation: update `docs/STOICHIOMETRY.md` and `docs/mass_balances/` as coefficients are fixed; keep cross-links to Casagli SI and this ADR.
 - Explicit $\mathbf{S}\mathbf{I}^\top$ breakdown for all 114 process×element cells: [`docs/MASS_BALANCES.md`](../MASS_BALANCES.md) (regenerate with `uv run python scripts/generate_mass_balances_md.py`).
+- Experimental **O-exact** $S_{\mathrm{H2O}}$ closure copy: [`stoichiometry_closure.py`](../../src/bioprocess_twin/models/stoichiometry_closure.py), narrative [`OH_CLOSURE.md`](../mass_balances/OH_CLOSURE.md), audit [`MASS_BALANCES_CLOSURE_OF_OXYGEN.md`](../MASS_BALANCES_CLOSURE_OF_OXYGEN.md) (`uv run python scripts/generate_mass_balances_md.py --closure`).
 
 ## Consequences
 

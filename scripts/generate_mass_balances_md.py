@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Regenerate docs/MASS_BALANCES.md from stoichiometry matrices (19×17 × 6×17 → 114 cells)."""
+"""Regenerate mass-balance Markdown from Petersen and composition matrices."""
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
+
+import numpy as np
 
 # Repo root on sys.path when run as `uv run python scripts/generate_mass_balances_md.py`
 _ROOT = Path(__file__).resolve().parents[1]
@@ -77,41 +80,38 @@ def _anchor_id(rho: int, elem: str) -> str:
     return f"rho{rho}-{elem}"
 
 
-def generate() -> str:
-    S = get_petersen_matrix()
-    comp = get_composition_matrix()
+def generate_markdown(
+    S: np.ndarray,
+    comp: np.ndarray,
+    *,
+    title: str,
+    preamble_paragraphs: list[str],
+    atol: float,
+    regen_command: str,
+    derivation_blurb: str,
+) -> str:
+    """Build full 114-cell Markdown for given ``S`` and ``comp``."""
     balance = S @ comp.T
 
     lines: list[str] = []
-    lines.append(
-        "# Mass balances: explicit $\\mathbf{S}\\mathbf{I}^\\top$ cells (ALBA stoichiometry)"
-    )
+    lines.append(title)
     lines.append("")
-    lines.append(
-        "This file documents the **elemental and COD-style mass-balance check** "
-        "used in unit tests: for each biological process row $i$ of the Petersen "
-        "matrix $\\mathbf{S}$ and each row $k$ of the composition matrix "
-        "$\\mathbf{I}$ (COD, O, C, N, P, H),"
-    )
-    lines.append("")
+    for p in preamble_paragraphs:
+        lines.append(p)
+        lines.append("")
     lines.append(r"$$B_{i,k} = \sum_{j=0}^{16} S_{i,j}\, I_{k,j}\,.$$")
     lines.append("")
     lines.append(
         "Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numbering "
-        "$\\rho_r$ uses $r = i + 1$. A value near zero means the row is consistent with that "
-        "composition row; large $|B_{i,k}|$ indicates missing or implicit species in $\\mathbf{S}$ "
-        "(see ADR 007 for O/H policy)."
+        "$\\rho_r$ uses $r = i + 1$."
     )
     lines.append("")
     lines.append(
-        "**Tolerance:** `MASS_BALANCE_ATOL` from "
-        "`src/bioprocess_twin/stoichiometry_validation.py` "
-        f"(currently `{MASS_BALANCE_ATOL:g}`; tests import it via "
-        "`tests/unit/stoichiometry_mass_balance_shared.py`). "
+        f"**Tolerance:** audit uses atol = `{atol:g}` (see `stoichiometry_validation.py`). "
         r"OK if $|B_{i,k}| \le$ atol."
     )
     lines.append("")
-    lines.append("**Regeneration:** `uv run python scripts/generate_mass_balances_md.py`")
+    lines.append(f"**Regeneration:** `{regen_command}`")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -140,17 +140,14 @@ def generate() -> str:
         for k, elem in enumerate(ELEMENT_NAMES):
             r = float(balance[i, k])
             a = abs(r)
-            st = "OK" if a <= MASS_BALANCE_ATOL else "FAIL"
+            st = "OK" if a <= atol else "FAIL"
             lines.append(f"| {rho} | {elem} | {_fmt_float(r)} | {_fmt_float(a)} | **{st}** |")
     lines.append("")
     lines.append("---")
     lines.append("")
     lines.append("## Per-cell derivations")
     lines.append("")
-    lines.append(
-        "For each cell: contributing columns are those with $S_{i,j} \\neq 0$. "
-        "Products use numeric values from `get_petersen_matrix()` and `get_composition_matrix()`."
-    )
+    lines.append(derivation_blurb)
     lines.append("")
 
     cell_idx = 0
@@ -169,7 +166,7 @@ def generate() -> str:
             lines.append("")
             r = float(balance[i, k])
             a = abs(r)
-            st = "**OK**" if a <= MASS_BALANCE_ATOL else "**FAIL**"
+            st = "**OK**" if a <= atol else "**FAIL**"
             lines.append(
                 f"Balance for process row $i={i}$ ($\\rho_{{{rho}}}$) and composition row "
                 f"$k={k}$ (**{elem}**):"
@@ -184,7 +181,7 @@ def generate() -> str:
                 lines.append("")
                 lines.append(f"**Sum:** $B_{{{i},{k}}} = 0$  ")
                 lines.append("")
-                lines.append(f"**Status:** {st} (atol = {MASS_BALANCE_ATOL:g})")
+                lines.append(f"**Status:** {st} (atol = {atol:g})")
                 lines.append("")
                 continue
 
@@ -220,7 +217,7 @@ def generate() -> str:
             lines.append("")
             lines.append(
                 f"**Status:** {st} — $|B_{{{i},{k}}}| = {_fmt_float(a)}$ "
-                f"{'≤' if a <= MASS_BALANCE_ATOL else '>'} {MASS_BALANCE_ATOL:g}"
+                f"{'≤' if a <= atol else '>'} {atol:g}"
             )
             lines.append("")
 
@@ -228,9 +225,87 @@ def generate() -> str:
     return "\n".join(lines) + "\n"
 
 
+def _generate_si() -> str:
+    S = get_petersen_matrix()
+    comp = get_composition_matrix()
+    return generate_markdown(
+        S,
+        comp,
+        title="# Mass balances: explicit $\\mathbf{S}\\mathbf{I}^\\top$ cells (ALBA stoichiometry)",
+        preamble_paragraphs=[
+            "This file documents the **elemental and COD-style mass-balance check** "
+            "used in unit tests: for each biological process row $i$ of the Petersen "
+            "matrix $\\mathbf{S}$ and each row $k$ of the composition matrix "
+            "$\\mathbf{I}$ (COD, O, C, N, P, H). Coefficients follow **Casagli SI.3.3** "
+            "via `get_petersen_matrix()`. Large $|B_{i,k}|$ for O/H indicates ASM-style "
+            "implicit solvent (see ADR 007).",
+            "**Source matrices:** `get_petersen_matrix()`, `get_composition_matrix()`. "
+            "**Tolerance constant:** `MASS_BALANCE_ATOL` in "
+            "`src/bioprocess_twin/stoichiometry_validation.py` "
+            f"(currently `{MASS_BALANCE_ATOL:g}`; tests re-export via "
+            "`tests/unit/stoichiometry_mass_balance_shared.py`).",
+        ],
+        atol=MASS_BALANCE_ATOL,
+        regen_command="uv run python scripts/generate_mass_balances_md.py",
+        derivation_blurb=(
+            "For each cell: contributing columns are those with $S_{i,j} \\neq 0$. "
+            "Products use numeric values from the same ``S`` and ``comp`` as this document."
+        ),
+    )
+
+
+def _generate_closure() -> str:
+    from bioprocess_twin.models.stoichiometry_closure import build_petersen_matrix_with_oh_closure
+
+    S, _, detail = build_petersen_matrix_with_oh_closure()
+    comp = get_composition_matrix()
+    rows = ", ".join(str(i + 1) for i in detail.rows_adjusted)
+    return generate_markdown(
+        S,
+        comp,
+        title=(
+            "# Mass balances: $\\mathbf{S}\\mathbf{I}^\\top$ with **stoichiometric** "
+            "$S_{\\mathrm{H2O}}$ closure (residual O as water-O)"
+        ),
+        preamble_paragraphs=[
+            "**Artifact:** `docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md` — oxygen closure via "
+            "stoichiometric $S_{\\mathrm{H2O}}$ only.",
+            "This file uses **`build_petersen_matrix_with_oh_closure()`** "
+            "(`stoichiometry_closure.py`): a **copy** of the SI Petersen matrix with "
+            "column $S_{\\mathrm{H2O}}$ set to $\\alpha_i=-L_i/I_{\\mathrm{O},S_{\\mathrm{H2O}}}$ "
+            "for failing rows ($L_i$ = elemental O from all non-water SI species). "
+            "That is **stoichiometric water** under the convention that missing oxygen is "
+            "water oxygen in this $\\mathbf{I}$ basis (see `docs/mass_balances/stoichiometric_water_rationale.md`). "
+            "**Hydrogen** may still deviate until a second closure species (e.g. $\\mathrm{H}^+$) "
+            "is modeled (ADR 007).",
+            f"**Adjusted process rows (1-based $\\rho$):** {rows or '*(none)*'}. "
+            "All non-$S_{\\mathrm{H2O}}$ entries match `get_petersen_matrix()`.",
+        ],
+        atol=MASS_BALANCE_ATOL,
+        regen_command="uv run python scripts/generate_mass_balances_md.py --closure",
+        derivation_blurb=(
+            "Same layout as `MASS_BALANCES.md`; coefficients come from the **oxygen-closure** "
+            "Petersen matrix ``S`` (this document)."
+        ),
+    )
+
+
 def main() -> None:
-    out = _ROOT / "docs" / "MASS_BALANCES.md"
-    text = generate()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--closure",
+        action="store_true",
+        help="Write docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md using OH-closure Petersen copy.",
+    )
+    args = parser.parse_args()
+
+    if args.closure:
+        text = _generate_closure()
+        out = _ROOT / "docs" / "MASS_BALANCES_CLOSURE_OF_OXYGEN.md"
+    else:
+        text = _generate_si()
+        out = _ROOT / "docs" / "MASS_BALANCES.md"
+
     out.write_text(text, encoding="utf-8")
     print(f"Wrote {out} ({len(text)} bytes)")
 
