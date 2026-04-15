@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#2026-04-15---sprint-25a-stoichiometric-o-and-h-closure-layers-and-extended-statevector)
 - [2026-03-31 - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)](#2026-03-31---sprint-2-deepresearch-and-explicit-oh-balance-rho14-alba-vs-asm)
 - [2026-03-30 - Sprint 2: Mass Balance Cell Diagnostics and SI Alignment Checkpoint](#2026-03-30---sprint-2-mass-balance-cell-diagnostics-and-si-alignment-checkpoint)
 - [2026-03-19 - Sprint 2: Petersen Matrix and Stoichiometry (Mass Balance Verification)](#2026-03-19---sprint-2-petersen-matrix-and-stoichiometry-mass-balance-verification)
@@ -13,6 +14,46 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+## [2026-04-15] - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector
+
+### Context & Goals
+Following **ADR 007** (policy **(a)**), the twin needs a **clear extension layer** on top of literal Casagli SI stoichiometry: first **elemental oxygen** via stoichiometric **water**, then **elemental hydrogen** via an explicit **free-proton** inventory column, without yet coupling **charge** or **SI.6 pH**. The state container must align with **17- vs 18-component** ODE layouts so future solvers can pick **SI**, **O-closure**, or **O+H-closure** consistently with the Petersen matrix shape.
+
+### Technical Implementation
+- **`src/bioprocess_twin/models/stoichiometry_closure.py`:
+    - **Oxygen closure adjusts only** **`S_H2O`** using $ \alpha_i = -L_i / I_{\mathrm{O},S_{\mathrm{H2O}}} $ (`compute_stoichiometric_s_h2o_total_for_row`); 
+    - proton step builds **19×18** `S` with **`S_H_PROTON`** via $ \beta_i = -R_i^{\mathrm{H}} $ (`compute_stoichiometric_s_h_proton_total_for_row`) after oxygen-closed rows. 
+    - `get_petersen_matrix_for_simulation(closure_mode=...)` selects **SI / oxygen / oxygen_and_protons** (legacy `use_oh_closure` preserved). 
+    - `get_composition_matrix_proton_closure()` returns **6×18** with $I_{\mathrm{H}}=1$ on the proton column only.
+- **`scripts/generate_mass_balances_md.py`:
+    - `--closure-of-oxygen`, `--closure-of-oxygen-and-protons`, `--closure` (alias for oxygen); 
+    - Markdown generator supports **17 or 18** columns; 
+    - outputs include `docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md` and `docs/MASS_BALANCES_CLOSURE_OF_PROTONS.md`.
+- **Documentation:** 
+    - `docs/mass_balances/stoichiometric_water_rationale.md`, 
+    - `docs/mass_balances/proton_closure_rationale.md`, 
+    - `docs/mass_balances/OH_CLOSURE.md`, 
+    - and **ADR 007** implementation notes cross-link the three audit artifacts and CLI regeneration commands.
+- **`src/bioprocess_twin/core/state.py`:** 
+    - `StateVectorVariant` (`si`, `oxygen`, `oxygen_and_protons`) and `state_array_len`; 
+    - new field **`S_H_PROTON`**; 
+    - `to_array(variant=...)` and `from_array(..., variant=...)` for **17- or 18-length** arrays (inference from length when `variant` omitted). 
+- **`src/bioprocess_twin/models/stoichiometry.py`:** 
+    - Comment that extended layout appends **`S_H_PROTON`** at **j = 17** (aligned with closure column index).
+- **Tests:** 
+    - `tests/unit/test_stoichiometry_oh_closure.py`, 
+    - `tests/unit/test_stoichiometry_proton_closure.py`, 
+    - and expanded `tests/unit/test_state.py` for layout and round-trip behavior.
+
+### 💡 Deep Dive: Closure as constrained stoichiometry, not ad hoc tuning
+For each process row, once all **non-water** species fix $L_i$ (oxygen in explicit columns), **one** total coefficient on **`S_H2O`** is uniquely determined if missing O is booked as **water oxygen** in the existing $I$ convention. Likewise, after that step, $R_i^{\mathrm{H}}$ from the **17** columns fixes the **proton** coefficient if residual H is booked in a single column with $I_{\mathrm{H}}=1$. The numeric values match the old “delta to pass the audit” algebra; the **interpretation** is that these are the **only** coefficients consistent with the table plus the stated closure conventions, parallel to textbook balancing with explicit $\mathrm{H}_2\mathrm{O}$ and $\mathrm{H}^+$, but in the ALBA **mass/COD** state basis.
+
+### Next Steps
+- Wire the **ODE RHS** (and any integrator) to pass **`closure_mode`** through to both **`get_petersen_matrix_for_simulation`** and **`StateVector.to_array` / `from_array`** so $d\mathbf{C}/dt$ dimension always matches **`S`**.
+- Later: **charge / alkalinity** and **SI.6** coupling; tighten **`MASS_BALANCE_ATOL`** on O/H once extensions are stable in simulation, not only in audit Markdown.
 
 ---
 
@@ -30,8 +71,8 @@ Mass balance tests still showed large residuals for **oxygen** and **hydrogen** 
 The test enforces $\sum_j S_{i,j} I_{k,j} \approx 0$ for every process $i$ and element $k$. ASM-class matrices are usually built so **COD** (electron balance) and **nutrients** close for design variables; **water** is treated as infinite and **pH** as buffered, so **atomic O and H** are often not closed in `S`. ALBA mixes **algal** stoichiometry (with $S_{\mathrm{H2O}}$) and **bacterial** blocks inherited from that tradition. For rho14, $I_{\mathrm{O}}$ for $\mathrm{NH_4^+}$ is zero (no O in the ion), while $\mathrm{NO_2^-}$ carries oxygen; without a compensating **water** (or equivalent) term in `S`, the same SI numbers that are correct for ASM-style energy bookkeeping can still fail a **full** O (and H) matrix audit—exactly what [**`Balance of oxygen for rho14`**](../mass_balances/balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md) quantifies.
 
 ### Next Steps
-- Decide project policy: **(a)** extend bacterial Petersen rows (and possibly state vector) for strict O/H closure per RWQM-style practice, or **(b)** document that strict elemental O/H checks are **out of scope** for the ALBA SI as implemented and narrow tests accordingly.
-- If (a), derive and implement \(S_{\mathrm{H2O}}\) (and charge balance if needed) for rho14 and peer bacterial processes; re-tighten `MASS_BALANCE_ATOL` toward `1e-6`.
+- **Policy (2026-04-14):** **(a)** adopted — extend the model for strict O/H closure; recorded in [**ADR 007**](../adrs/007-elemental-mass-balance-oh-closure.md) (also linked from `SPRINTS.md` and `docs/STOICHIOMETRY.md`).
+- Derive and implement \(S_{\mathrm{H2O}}\) (and charge balance if needed) for rho14 and peer bacterial processes; re-tighten `MASS_BALANCE_ATOL` toward `1e-6`.
 - Cross-check any proposed coefficients against Casagli SI and primary references before merging.
 
 ---

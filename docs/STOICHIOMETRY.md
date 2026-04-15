@@ -76,3 +76,5 @@ It has two critical uses:
 **Note:** The values like $iO_{BM,ALG}$, $iC_{BM,ALG}$, etc., are specific parameters of the ALBA model and must be replaced by their numerical values according to the table SI.3.2 of the original document.
 
 **See also:** [Stoichiometry external comparison](stoichiometry-external-comparison.md) — alignment of code and docs with the Casagli SI, comparison to ASM1/ASM3, benchmark/software references, and ALBA-specific $ COD / (S_{H2O}) $ conventions.
+
+**Policy (elemental O/H):** [ADR 007: Elemental mass-balance O/H closure](adrs/007-elemental-mass-balance-oh-closure.md) — project choice to extend $\mathbf{S}$ (and related bookkeeping) for strict water/proton–aware closure in the digital twin.
