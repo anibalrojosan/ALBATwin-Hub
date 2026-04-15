@@ -1,18 +1,18 @@
-# Mass balances: $\mathbf{S}\mathbf{I}^\top$ with **stoichiometric** $S_{\mathrm{H2O}}$ closure (residual O as water-O)
+# Mass balances: $\mathbf{S}\mathbf{I}^\top$ with **O** (water) + **H** (proton) closure — extended **19×18** $\mathbf{S}$
 
-**Artifact:** `docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md` — oxygen closure via stoichiometric $S_{\mathrm{H2O}}$ only.
+**Artifact:** `docs/MASS_BALANCES_CLOSURE_OF_PROTONS.md` — audit layer only (**not** SI Casagli 17 states; **no** charge / SI.6 pH).
 
-This file uses **`build_petersen_matrix_with_oh_closure()`** (`stoichiometry_closure.py`): a **copy** of the SI Petersen matrix with column $S_{\mathrm{H2O}}$ set to $\alpha_i=-L_i/I_{\mathrm{O},S_{\mathrm{H2O}}}$ for failing rows ($L_i$ = elemental O from all non-water SI species). That is **stoichiometric water** under the convention that missing oxygen is water oxygen in this $\mathbf{I}$ basis (see `docs/mass_balances/stoichiometric_water_rationale.md`). **Hydrogen** may still deviate until a second closure species (e.g. $\mathrm{H}^+$) is modeled (ADR 007).
+This file uses **`build_petersen_matrix_with_oxygen_and_proton_closure()`**: oxygen closure on **`S_H2O`**, then **`S_H_PROTON`** with **`compute_stoichiometric_s_h_proton_total_for_row`** ($\beta_i=-R_i^{\mathrm{H}}$: all H not in the 17 explicit columns booked as g H in free protons; not a separate tuning parameter). Non-zero only where $|\beta_i| > \texttt{atol}$. See `docs/mass_balances/proton_closure_rationale.md`.
 
-**Adjusted process rows (1-based $\rho$):** 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19. All non-$S_{\mathrm{H2O}}$ entries match `get_petersen_matrix()`.
+**O-adjusted process rows (1-based $\rho$):** 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19. **Proton-adjusted rows:** 4, 5, 6, 8, 9, 13, 14, 16, 17, 19. Columns **0–16** match `build_petersen_matrix_with_oh_closure()`.
 
-$$B_{i,k} = \sum_{j=0}^{16} S_{i,j}\, I_{k,j}\,.$$
+$$B_{i,k} = \sum_{j=0}^{17} S_{i,j}\, I_{k,j}\,.$$
 
 Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numbering $\rho_r$ uses $r = i + 1$.
 
 **Tolerance:** audit uses atol = `0.01` (see `stoichiometry_validation.py`). OK if $|B_{i,k}| \le$ atol.
 
-**Regeneration:** `uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen`
+**Regeneration:** `uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen-and-protons`
 
 ---
 
@@ -184,19 +184,19 @@ Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numb
 | 4 | C | -7.806256e-18 | 7.806256e-18 | **OK** |
 | 4 | N | -2.602085e-18 | 2.602085e-18 | **OK** |
 | 4 | P | 0 | 0 | **OK** |
-| 4 | H | -0.0444558188 | 0.0444558188 | **FAIL** |
+| 4 | H | 0 | 0 | **OK** |
 | 5 | COD | 0 | 0 | **OK** |
 | 5 | O | -6.443538e-17 | 6.443538e-17 | **OK** |
 | 5 | C | 0 | 0 | **OK** |
 | 5 | N | 0 | 0 | **OK** |
 | 5 | P | 0 | 0 | **OK** |
-| 5 | H | 0.0643544888 | 0.0643544888 | **FAIL** |
+| 5 | H | 0 | 0 | **OK** |
 | 6 | COD | -8.598639e-05 | 8.598639e-05 | **OK** |
 | 6 | O | -3.895108e-17 | 3.895108e-17 | **OK** |
 | 6 | C | 0 | 0 | **OK** |
 | 6 | N | 0 | 0 | **OK** |
 | 6 | P | 0 | 0 | **OK** |
-| 6 | H | 0.0647302732 | 0.0647302732 | **FAIL** |
+| 6 | H | 0 | 0 | **OK** |
 | 7 | COD | 0 | 0 | **OK** |
 | 7 | O | 1.238896e-17 | 1.238896e-17 | **OK** |
 | 7 | C | 0 | 0 | **OK** |
@@ -208,13 +208,13 @@ Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numb
 | 8 | C | 0 | 0 | **OK** |
 | 8 | N | 0 | 0 | **OK** |
 | 8 | P | 0 | 0 | **OK** |
-| 8 | H | 0.082090529 | 0.082090529 | **FAIL** |
+| 8 | H | 0 | 0 | **OK** |
 | 9 | COD | 0.0077777778 | 0.0077777778 | **OK** |
 | 9 | O | -1.997784e-16 | 1.997784e-16 | **OK** |
 | 9 | C | 0 | 0 | **OK** |
 | 9 | N | 0 | 0 | **OK** |
 | 9 | P | -1.301043e-18 | 1.301043e-18 | **OK** |
-| 9 | H | 0.1379100644 | 0.1379100644 | **FAIL** |
+| 9 | H | 0 | 0 | **OK** |
 | 10 | COD | 0.001875 | 0.001875 | **OK** |
 | 10 | O | 6.051325e-18 | 6.051325e-18 | **OK** |
 | 10 | C | 0 | 0 | **OK** |
@@ -238,13 +238,13 @@ Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numb
 | 13 | C | 0 | 0 | **OK** |
 | 13 | N | 0 | 0 | **OK** |
 | 13 | P | 0 | 0 | **OK** |
-| 13 | H | -0.0433684736 | 0.0433684736 | **FAIL** |
+| 13 | H | 0 | 0 | **OK** |
 | 14 | COD | -0.0071428571 | 0.0071428571 | **OK** |
 | 14 | O | 1.363561e-15 | 1.363561e-15 | **OK** |
 | 14 | C | 0 | 0 | **OK** |
 | 14 | N | 0 | 0 | **OK** |
 | 14 | P | 0 | 0 | **OK** |
-| 14 | H | -0.0276874127 | 0.0276874127 | **FAIL** |
+| 14 | H | 0 | 0 | **OK** |
 | 15 | COD | 0 | 0 | **OK** |
 | 15 | O | 1.238896e-17 | 1.238896e-17 | **OK** |
 | 15 | C | 0 | 0 | **OK** |
@@ -256,13 +256,13 @@ Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numb
 | 16 | C | 0 | 0 | **OK** |
 | 16 | N | 0 | 0 | **OK** |
 | 16 | P | 0 | 0 | **OK** |
-| 16 | H | -0.0433684736 | 0.0433684736 | **FAIL** |
+| 16 | H | 0 | 0 | **OK** |
 | 17 | COD | 0.0571428571 | 0.0571428571 | **FAIL** |
 | 17 | O | -7.122211e-15 | 7.122211e-15 | **OK** |
 | 17 | C | 0 | 0 | **OK** |
 | 17 | N | 0 | 0 | **OK** |
 | 17 | P | 0 | 0 | **OK** |
-| 17 | H | -0.0189612522 | 0.0189612522 | **FAIL** |
+| 17 | H | 2.671474e-16 | 2.671474e-16 | **OK** |
 | 18 | COD | 0 | 0 | **OK** |
 | 18 | O | 1.238896e-17 | 1.238896e-17 | **OK** |
 | 18 | C | 0 | 0 | **OK** |
@@ -274,13 +274,13 @@ Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numb
 | 19 | C | 0 | 0 | **OK** |
 | 19 | N | 0 | 0 | **OK** |
 | 19 | P | 0 | 0 | **OK** |
-| 19 | H | -0.0433684736 | 0.0433684736 | **FAIL** |
+| 19 | H | 0 | 0 | **OK** |
 
 ---
 
 ## Per-cell derivations
 
-Same layout as `MASS_BALANCES.md`; coefficients come from the **oxygen-closure** Petersen matrix ``S`` (this document).
+114 cells = 19 processes × 6 composition rows; sums run over **18** columns where applicable. Matrix ``S`` is **19×18**; ``comp`` is **6×18**.
 
 ### rho1
 
@@ -293,7 +293,7 @@ Balance for process row $i=0$ ($\rho_{1}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 1 + 0 + 0 + 0 + -1.0013225806 + 0$$
 
@@ -317,7 +317,7 @@ Balance for process row $i=0$ ($\rho_{1}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.209 + -0.87309 + 0 + -0.01656 + 1.0013225806 + -0.320776$$
 
@@ -341,7 +341,7 @@ Balance for process row $i=0$ ($\rho_{1}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.327 + -0.327 + 0 + 0 + 0 + 0$$
 
@@ -365,7 +365,7 @@ Balance for process row $i=0$ ($\rho_{1}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.042 + 0 + -0.042 + 0 + 0 + 0$$
 
@@ -389,7 +389,7 @@ Balance for process row $i=0$ ($\rho_{1}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.008 + 0 + 0 + -0.008 + 0 + 0$$
 
@@ -413,7 +413,7 @@ Balance for process row $i=0$ ($\rho_{1}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.05 + 0 + -0.00924 + -0.0008 + 0 + -0.0404$$
 
@@ -441,7 +441,7 @@ Balance for process row $i=1$ ($\rho_{2}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 1 + 0 + 0.19194 + 0 + -1.1933225806 + 0$$
 
@@ -465,7 +465,7 @@ Balance for process row $i=1$ ($\rho_{2}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.209 + -0.87309 + -0.14406 + -0.01656 + 1.1933225806 + -0.368416$$
 
@@ -489,7 +489,7 @@ Balance for process row $i=1$ ($\rho_{2}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.327 + -0.327 + 0 + 0 + 0 + 0$$
 
@@ -513,7 +513,7 @@ Balance for process row $i=1$ ($\rho_{2}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.042 + 0 + -0.042 + 0 + 0 + 0$$
 
@@ -537,7 +537,7 @@ Balance for process row $i=1$ ($\rho_{2}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.008 + 0 + 0 + -0.008 + 0 + 0$$
 
@@ -561,7 +561,7 @@ Balance for process row $i=1$ ($\rho_{2}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.05 + 0 + -0.00294 + -0.0008 + 0 + -0.0464$$
 
@@ -589,7 +589,7 @@ Balance for process row $i=2$ ($\rho_{3}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -1 + 0 + 0 + 0 + 1.0013225806 + 0$$
 
@@ -613,7 +613,7 @@ Balance for process row $i=2$ ($\rho_{3}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.209 + 0.87309 + 0 + 0.01656 + -1.0013225806 + 0.320776$$
 
@@ -637,7 +637,7 @@ Balance for process row $i=2$ ($\rho_{3}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.327 + 0.327 + 0 + 0 + 0 + 0$$
 
@@ -661,7 +661,7 @@ Balance for process row $i=2$ ($\rho_{3}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.042 + 0 + 0.042 + 0 + 0 + 0$$
 
@@ -685,7 +685,7 @@ Balance for process row $i=2$ ($\rho_{3}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.008 + 0 + 0 + 0.008 + 0 + 0$$
 
@@ -709,7 +709,7 @@ Balance for process row $i=2$ ($\rho_{3}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.05 + 0 + 0.00924 + 0.0008 + 0 + 0.0404$$
 
@@ -737,9 +737,9 @@ Balance for process row $i=3$ ($\rho_{4}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -1 + 0.938 + 0.062 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = -1 + 0.938 + 0.062 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -750,6 +750,7 @@ $$B_{i,k} = -1 + 0.938 + 0.062 + 0 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.006388 | 0 | 0 |
 | 14 | `S_PO4` | 0.00269 | 0 | 0 |
 | 16 | `S_H2O` | 0.0038698212 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0444558188 | 0 | 0 |
 
 **Sum:** $B_{3,0} \approx -5.551115e-17$ (check: `numpy.sum` = -5.551115e-17)
 
@@ -762,9 +763,9 @@ Balance for process row $i=3$ ($\rho_{4}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.209 + 0.146328 + 0.0093 + 0.01707732 + 0 + 0.0055683 + 0.03072638$$
+$$B_{i,k} = -0.209 + 0.146328 + 0.0093 + 0.01707732 + 0 + 0.0055683 + 0.03072638 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -775,6 +776,7 @@ $$B_{i,k} = -0.209 + 0.146328 + 0.0093 + 0.01707732 + 0 + 0.0055683 + 0.03072638
 | 10 | `S_NH` | 0.006388 | 0 | 0 |
 | 14 | `S_PO4` | 0.00269 | 2.07 | 0.0055683 |
 | 16 | `S_H2O` | 0.0038698212 | 7.94 | 0.03072638 |
+| 17 | `S_H_PROTON` | 0.0444558188 | 0 | 0 |
 
 **Sum:** $B_{3,1} \approx 7.601200e-18$ (check: `numpy.sum` = 7.601200e-18)
 
@@ -787,9 +789,9 @@ Balance for process row $i=3$ ($\rho_{4}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.327 + 0.298284 + 0.02232 + 0.006396 + 0 + 0 + 0$$
+$$B_{i,k} = -0.327 + 0.298284 + 0.02232 + 0.006396 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -800,6 +802,7 @@ $$B_{i,k} = -0.327 + 0.298284 + 0.02232 + 0.006396 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.006388 | 0 | 0 |
 | 14 | `S_PO4` | 0.00269 | 0 | 0 |
 | 16 | `S_H2O` | 0.0038698212 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0444558188 | 0 | 0 |
 
 **Sum:** $B_{3,2} \approx -7.806256e-18$ (check: `numpy.sum` = -7.806256e-18)
 
@@ -812,9 +815,9 @@ Balance for process row $i=3$ ($\rho_{4}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.042 + 0.031892 + 0.00372 + 0 + 0.006388 + 0 + 0$$
+$$B_{i,k} = -0.042 + 0.031892 + 0.00372 + 0 + 0.006388 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -825,6 +828,7 @@ $$B_{i,k} = -0.042 + 0.031892 + 0.00372 + 0 + 0.006388 + 0 + 0$$
 | 10 | `S_NH` | 0.006388 | 1 | 0.006388 |
 | 14 | `S_PO4` | 0.00269 | 0 | 0 |
 | 16 | `S_H2O` | 0.0038698212 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0444558188 | 0 | 0 |
 
 **Sum:** $B_{3,3} \approx -2.602085e-18$ (check: `numpy.sum` = -2.602085e-18)
 
@@ -837,9 +841,9 @@ Balance for process row $i=3$ ($\rho_{4}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.008 + 0.00469 + 0.00062 + 0 + 0 + 0.00269 + 0$$
+$$B_{i,k} = -0.008 + 0.00469 + 0.00062 + 0 + 0 + 0.00269 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -850,6 +854,7 @@ $$B_{i,k} = -0.008 + 0.00469 + 0.00062 + 0 + 0 + 0.00269 + 0$$
 | 10 | `S_NH` | 0.006388 | 0 | 0 |
 | 14 | `S_PO4` | 0.00269 | 1 | 0.00269 |
 | 16 | `S_H2O` | 0.0038698212 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0444558188 | 0 | 0 |
 
 **Sum:** $B_{3,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -862,9 +867,9 @@ Balance for process row $i=3$ ($\rho_{4}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.05 + 0 + 0 + 0 + 0.00140536 + 0.000269 + 0.0038698212$$
+$$B_{i,k} = -0.05 + 0 + 0 + 0 + 0.00140536 + 0.000269 + 0.0038698212 + 0.0444558188$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -875,10 +880,11 @@ $$B_{i,k} = -0.05 + 0 + 0 + 0 + 0.00140536 + 0.000269 + 0.0038698212$$
 | 10 | `S_NH` | 0.006388 | 0.22 | 0.00140536 |
 | 14 | `S_PO4` | 0.00269 | 0.1 | 0.000269 |
 | 16 | `S_H2O` | 0.0038698212 | 1 | 0.0038698212 |
+| 17 | `S_H_PROTON` | 0.0444558188 | 1 | 0.0444558188 |
 
-**Sum:** $B_{3,5} \approx -0.0444558188$ (check: `numpy.sum` = -0.0444558188)
+**Sum:** $B_{3,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{3,5}| = 0.0444558188$ > 0.01
+**Status:** **OK** — $|B_{3,5}| = 0$ ≤ 0.01
 
 ### rho5
 
@@ -891,9 +897,9 @@ Balance for process row $i=4$ ($\rho_{5}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 1 + -1.5873015873 + 0 + 0 + 0 + 0.5873015873 + 0$$
+$$B_{i,k} = 1 + -1.5873015873 + 0 + 0 + 0 + 0.5873015873 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -904,6 +910,7 @@ $$B_{i,k} = 1 + -1.5873015873 + 0 + 0 + 0 + 0.5873015873 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 0 | 0 |
 | 15 | `S_O2` | -0.5873015873 | -1 | 0.5873015873 |
 | 16 | `S_H2O` | 0.0354027428 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0643544888 | 0 | 0 |
 
 **Sum:** $B_{4,0} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -916,9 +923,9 @@ Balance for process row $i=4$ ($\rho_{5}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.184 + -0.2476190476 + 0.3865142857 + 0 + -0.0166914286 + -0.5873015873 + 0.2810977778$$
+$$B_{i,k} = 0.184 + -0.2476190476 + 0.3865142857 + 0 + -0.0166914286 + -0.5873015873 + 0.2810977778 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -929,6 +936,7 @@ $$B_{i,k} = 0.184 + -0.2476190476 + 0.3865142857 + 0 + -0.0166914286 + -0.587301
 | 14 | `S_PO4` | -0.0080634921 | 2.07 | -0.0166914286 |
 | 15 | `S_O2` | -0.5873015873 | 1 | -0.5873015873 |
 | 16 | `S_H2O` | 0.0354027428 | 7.94 | 0.2810977778 |
+| 17 | `S_H_PROTON` | -0.0643544888 | 0 | 0 |
 
 **Sum:** $B_{4,1} \approx -6.443538e-17$ (check: `numpy.sum` = -6.443538e-17)
 
@@ -941,9 +949,9 @@ Balance for process row $i=4$ ($\rho_{5}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.36 + -0.5047619048 + 0.1447619048 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = 0.36 + -0.5047619048 + 0.1447619048 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -954,6 +962,7 @@ $$B_{i,k} = 0.36 + -0.5047619048 + 0.1447619048 + 0 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 0 | 0 |
 | 15 | `S_O2` | -0.5873015873 | 0 | 0 |
 | 16 | `S_H2O` | 0.0354027428 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0643544888 | 0 | 0 |
 
 **Sum:** $B_{4,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -966,9 +975,9 @@ Balance for process row $i=4$ ($\rho_{5}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.084 + -0.0238095238 + 0 + -0.0601904762 + 0 + 0 + 0$$
+$$B_{i,k} = 0.084 + -0.0238095238 + 0 + -0.0601904762 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -979,6 +988,7 @@ $$B_{i,k} = 0.084 + -0.0238095238 + 0 + -0.0601904762 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 0 | 0 |
 | 15 | `S_O2` | -0.5873015873 | 0 | 0 |
 | 16 | `S_H2O` | 0.0354027428 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0643544888 | 0 | 0 |
 
 **Sum:** $B_{4,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -991,9 +1001,9 @@ Balance for process row $i=4$ ($\rho_{5}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.016 + -0.0079365079 + 0 + 0 + -0.0080634921 + 0 + 0$$
+$$B_{i,k} = 0.016 + -0.0079365079 + 0 + 0 + -0.0080634921 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1004,6 +1014,7 @@ $$B_{i,k} = 0.016 + -0.0079365079 + 0 + 0 + -0.0080634921 + 0 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 1 | -0.0080634921 |
 | 15 | `S_O2` | -0.5873015873 | 0 | 0 |
 | 16 | `S_H2O` | 0.0354027428 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0643544888 | 0 | 0 |
 
 **Sum:** $B_{4,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1016,9 +1027,9 @@ Balance for process row $i=4$ ($\rho_{5}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.043 + 0 + 0 + -0.0132419048 + -0.0008063492 + 0 + 0.0354027428$$
+$$B_{i,k} = 0.043 + 0 + 0 + -0.0132419048 + -0.0008063492 + 0 + 0.0354027428 + -0.0643544888$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1029,10 +1040,11 @@ $$B_{i,k} = 0.043 + 0 + 0 + -0.0132419048 + -0.0008063492 + 0 + 0.0354027428$$
 | 14 | `S_PO4` | -0.0080634921 | 0.1 | -0.0008063492 |
 | 15 | `S_O2` | -0.5873015873 | 0 | 0 |
 | 16 | `S_H2O` | 0.0354027428 | 1 | 0.0354027428 |
+| 17 | `S_H_PROTON` | -0.0643544888 | 1 | -0.0643544888 |
 
-**Sum:** $B_{4,5} \approx 0.0643544888$ (check: `numpy.sum` = 0.0643544888)
+**Sum:** $B_{4,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{4,5}| = 0.0643544888$ > 0.01
+**Status:** **OK** — $|B_{4,5}| = 0$ ≤ 0.01
 
 ### rho6
 
@@ -1045,9 +1057,9 @@ Balance for process row $i=5$ ($\rho_{6}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 1 + -1.5873015873 + 0 + 0.2750704762 + 0 + 0.3121451247 + 0$$
+$$B_{i,k} = 1 + -1.5873015873 + 0 + 0.2750704762 + 0 + 0.3121451247 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1058,6 +1070,7 @@ $$B_{i,k} = 1 + -1.5873015873 + 0 + 0.2750704762 + 0 + 0.3121451247 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 0 | 0 |
 | 15 | `S_O2` | -0.3121451247 | -1 | 0.3121451247 |
 | 16 | `S_H2O` | 0.0267499557 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0647302732 | 0 | 0 |
 
 **Sum:** $B_{5,0} \approx -8.598639e-05$ (check: `numpy.sum` = -8.598639e-05)
 
@@ -1070,9 +1083,9 @@ Balance for process row $i=5$ ($\rho_{6}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.184 + -0.2476190476 + 0.3865142857 + -0.2064533333 + -0.0166914286 + -0.3121451247 + 0.2123946485$$
+$$B_{i,k} = 0.184 + -0.2476190476 + 0.3865142857 + -0.2064533333 + -0.0166914286 + -0.3121451247 + 0.2123946485 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1083,6 +1096,7 @@ $$B_{i,k} = 0.184 + -0.2476190476 + 0.3865142857 + -0.2064533333 + -0.0166914286
 | 14 | `S_PO4` | -0.0080634921 | 2.07 | -0.0166914286 |
 | 15 | `S_O2` | -0.3121451247 | 1 | -0.3121451247 |
 | 16 | `S_H2O` | 0.0267499557 | 7.94 | 0.2123946485 |
+| 17 | `S_H_PROTON` | -0.0647302732 | 0 | 0 |
 
 **Sum:** $B_{5,1} \approx -3.895108e-17$ (check: `numpy.sum` = -3.895108e-17)
 
@@ -1095,9 +1109,9 @@ Balance for process row $i=5$ ($\rho_{6}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.36 + -0.5047619048 + 0.1447619048 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = 0.36 + -0.5047619048 + 0.1447619048 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1108,6 +1122,7 @@ $$B_{i,k} = 0.36 + -0.5047619048 + 0.1447619048 + 0 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 0 | 0 |
 | 15 | `S_O2` | -0.3121451247 | 0 | 0 |
 | 16 | `S_H2O` | 0.0267499557 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0647302732 | 0 | 0 |
 
 **Sum:** $B_{5,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1120,9 +1135,9 @@ Balance for process row $i=5$ ($\rho_{6}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.084 + -0.0238095238 + 0 + -0.0601904762 + 0 + 0 + 0$$
+$$B_{i,k} = 0.084 + -0.0238095238 + 0 + -0.0601904762 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1133,6 +1148,7 @@ $$B_{i,k} = 0.084 + -0.0238095238 + 0 + -0.0601904762 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 0 | 0 |
 | 15 | `S_O2` | -0.3121451247 | 0 | 0 |
 | 16 | `S_H2O` | 0.0267499557 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0647302732 | 0 | 0 |
 
 **Sum:** $B_{5,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1145,9 +1161,9 @@ Balance for process row $i=5$ ($\rho_{6}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.016 + -0.0079365079 + 0 + 0 + -0.0080634921 + 0 + 0$$
+$$B_{i,k} = 0.016 + -0.0079365079 + 0 + 0 + -0.0080634921 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1158,6 +1174,7 @@ $$B_{i,k} = 0.016 + -0.0079365079 + 0 + 0 + -0.0080634921 + 0 + 0$$
 | 14 | `S_PO4` | -0.0080634921 | 1 | -0.0080634921 |
 | 15 | `S_O2` | -0.3121451247 | 0 | 0 |
 | 16 | `S_H2O` | 0.0267499557 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.0647302732 | 0 | 0 |
 
 **Sum:** $B_{5,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1170,9 +1187,9 @@ Balance for process row $i=5$ ($\rho_{6}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.043 + 0 + 0 + -0.0042133333 + -0.0008063492 + 0 + 0.0267499557$$
+$$B_{i,k} = 0.043 + 0 + 0 + -0.0042133333 + -0.0008063492 + 0 + 0.0267499557 + -0.0647302732$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1183,10 +1200,11 @@ $$B_{i,k} = 0.043 + 0 + 0 + -0.0042133333 + -0.0008063492 + 0 + 0.0267499557$$
 | 14 | `S_PO4` | -0.0080634921 | 0.1 | -0.0008063492 |
 | 15 | `S_O2` | -0.3121451247 | 0 | 0 |
 | 16 | `S_H2O` | 0.0267499557 | 1 | 0.0267499557 |
+| 17 | `S_H_PROTON` | -0.0647302732 | 1 | -0.0647302732 |
 
-**Sum:** $B_{5,5} \approx 0.0647302732$ (check: `numpy.sum` = 0.0647302732)
+**Sum:** $B_{5,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{5,5}| = 0.0647302732$ > 0.01
+**Status:** **OK** — $|B_{5,5}| = 0$ ≤ 0.01
 
 ### rho7
 
@@ -1199,7 +1217,7 @@ Balance for process row $i=6$ ($\rho_{7}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -1 + 0 + 0 + 0 + 1 + 0$$
 
@@ -1223,7 +1241,7 @@ Balance for process row $i=6$ ($\rho_{7}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.184 + 0.9612 + 0 + 0.03312 + -1 + 0.18968$$
 
@@ -1247,7 +1265,7 @@ Balance for process row $i=6$ ($\rho_{7}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.36 + 0.36 + 0 + 0 + 0 + 0$$
 
@@ -1271,7 +1289,7 @@ Balance for process row $i=6$ ($\rho_{7}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.084 + 0 + 0.084 + 0 + 0 + 0$$
 
@@ -1295,7 +1313,7 @@ Balance for process row $i=6$ ($\rho_{7}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.016 + 0 + 0 + 0.016 + 0 + 0$$
 
@@ -1319,7 +1337,7 @@ Balance for process row $i=6$ ($\rho_{7}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.043 + 0 + 0.01848 + 0.0016 + 0 + 0.0238891688$$
 
@@ -1347,9 +1365,9 @@ Balance for process row $i=7$ ($\rho_{8}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 1 + -2 + 0 + 0 + 1.5995 + -0.5985 + 0 + 0$$
+$$B_{i,k} = 1 + -2 + 0 + 0 + 1.5995 + -0.5985 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1361,6 +1379,7 @@ $$B_{i,k} = 1 + -2 + 0 + 0 + 1.5995 + -0.5985 + 0 + 0$$
 | 13 | `S_N2` | 0.35 | -1.71 | -0.5985 |
 | 14 | `S_PO4` | -0.006 | 0 | 0 |
 | 16 | `S_H2O` | 0.076070529 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.082090529 | 0 | 0 |
 
 **Sum:** $B_{7,0} \approx 0.001$ (check: `numpy.sum` = 0.001)
 
@@ -1373,9 +1392,9 @@ Balance for process row $i=7$ ($\rho_{8}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.184 + -0.312 + 0.73692 + 0 + -1.2005 + 0 + -0.01242 + 0.604$$
+$$B_{i,k} = 0.184 + -0.312 + 0.73692 + 0 + -1.2005 + 0 + -0.01242 + 0.604 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1387,6 +1406,7 @@ $$B_{i,k} = 0.184 + -0.312 + 0.73692 + 0 + -1.2005 + 0 + -0.01242 + 0.604$$
 | 13 | `S_N2` | 0.35 | 0 | 0 |
 | 14 | `S_PO4` | -0.006 | 2.07 | -0.01242 |
 | 16 | `S_H2O` | 0.076070529 | 7.94 | 0.604 |
+| 17 | `S_H_PROTON` | -0.082090529 | 0 | 0 |
 
 **Sum:** $B_{7,1} \approx -1.262581e-16$ (check: `numpy.sum` = -1.262581e-16)
 
@@ -1399,9 +1419,9 @@ Balance for process row $i=7$ ($\rho_{8}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.36 + -0.636 + 0.276 + 0 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = 0.36 + -0.636 + 0.276 + 0 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1413,6 +1433,7 @@ $$B_{i,k} = 0.36 + -0.636 + 0.276 + 0 + 0 + 0 + 0 + 0$$
 | 13 | `S_N2` | 0.35 | 0 | 0 |
 | 14 | `S_PO4` | -0.006 | 0 | 0 |
 | 16 | `S_H2O` | 0.076070529 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.082090529 | 0 | 0 |
 
 **Sum:** $B_{7,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1425,9 +1446,9 @@ Balance for process row $i=7$ ($\rho_{8}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.084 + -0.03 + 0 + -0.054 + -0.35 + 0.35 + 0 + 0$$
+$$B_{i,k} = 0.084 + -0.03 + 0 + -0.054 + -0.35 + 0.35 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1439,6 +1460,7 @@ $$B_{i,k} = 0.084 + -0.03 + 0 + -0.054 + -0.35 + 0.35 + 0 + 0$$
 | 13 | `S_N2` | 0.35 | 1 | 0.35 |
 | 14 | `S_PO4` | -0.006 | 0 | 0 |
 | 16 | `S_H2O` | 0.076070529 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.082090529 | 0 | 0 |
 
 **Sum:** $B_{7,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1451,9 +1473,9 @@ Balance for process row $i=7$ ($\rho_{8}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.016 + -0.01 + 0 + 0 + 0 + 0 + -0.006 + 0$$
+$$B_{i,k} = 0.016 + -0.01 + 0 + 0 + 0 + 0 + -0.006 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1465,6 +1487,7 @@ $$B_{i,k} = 0.016 + -0.01 + 0 + 0 + 0 + 0 + -0.006 + 0$$
 | 13 | `S_N2` | 0.35 | 0 | 0 |
 | 14 | `S_PO4` | -0.006 | 1 | -0.006 |
 | 16 | `S_H2O` | 0.076070529 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.082090529 | 0 | 0 |
 
 **Sum:** $B_{7,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1477,9 +1500,9 @@ Balance for process row $i=7$ ($\rho_{8}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.043 + 0 + 0 + -0.01188 + -0.0245 + 0 + -0.0006 + 0.076070529$$
+$$B_{i,k} = 0.043 + 0 + 0 + -0.01188 + -0.0245 + 0 + -0.0006 + 0.076070529 + -0.082090529$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1491,10 +1514,11 @@ $$B_{i,k} = 0.043 + 0 + 0 + -0.01188 + -0.0245 + 0 + -0.0006 + 0.076070529$$
 | 13 | `S_N2` | 0.35 | 0 | 0 |
 | 14 | `S_PO4` | -0.006 | 0.1 | -0.0006 |
 | 16 | `S_H2O` | 0.076070529 | 1 | 0.076070529 |
+| 17 | `S_H_PROTON` | -0.082090529 | 1 | -0.082090529 |
 
-**Sum:** $B_{7,5} \approx 0.082090529$ (check: `numpy.sum` = 0.082090529)
+**Sum:** $B_{7,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{7,5}| = 0.082090529$ > 0.01
+**Status:** **OK** — $|B_{7,5}| = 0$ ≤ 0.01
 
 ### rho9
 
@@ -1507,9 +1531,9 @@ Balance for process row $i=8$ ($\rho_{9}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 1 + -3.3333333333 + 0 + 0 + 4.6686111111 + -2.3275 + 0 + 0$$
+$$B_{i,k} = 1 + -3.3333333333 + 0 + 0 + 4.6686111111 + -2.3275 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1521,6 +1545,7 @@ $$B_{i,k} = 1 + -3.3333333333 + 0 + 0 + 4.6686111111 + -2.3275 + 0 + 0$$
 | 13 | `S_N2` | 1.3611111111 | -1.71 | -2.3275 |
 | 14 | `S_PO4` | 0.0006666667 | 0 | 0 |
 | 16 | `S_H2O` | 0.1976011755 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.1379100644 | 0 | 0 |
 
 **Sum:** $B_{8,0} \approx 0.0077777778$ (check: `numpy.sum` = 0.0077777778)
 
@@ -1533,9 +1558,9 @@ Balance for process row $i=8$ ($\rho_{9}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.184 + -0.52 + 1.869 + 0 + -3.1033333333 + 0 + 0.00138 + 1.5689533333$$
+$$B_{i,k} = 0.184 + -0.52 + 1.869 + 0 + -3.1033333333 + 0 + 0.00138 + 1.5689533333 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1547,6 +1572,7 @@ $$B_{i,k} = 0.184 + -0.52 + 1.869 + 0 + -3.1033333333 + 0 + 0.00138 + 1.56895333
 | 13 | `S_N2` | 1.3611111111 | 0 | 0 |
 | 14 | `S_PO4` | 0.0006666667 | 2.07 | 0.00138 |
 | 16 | `S_H2O` | 0.1976011755 | 7.94 | 1.5689533333 |
+| 17 | `S_H_PROTON` | -0.1379100644 | 0 | 0 |
 
 **Sum:** $B_{8,1} \approx -1.997784e-16$ (check: `numpy.sum` = -1.997784e-16)
 
@@ -1559,9 +1585,9 @@ Balance for process row $i=8$ ($\rho_{9}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.36 + -1.06 + 0.7 + 0 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = 0.36 + -1.06 + 0.7 + 0 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1573,6 +1599,7 @@ $$B_{i,k} = 0.36 + -1.06 + 0.7 + 0 + 0 + 0 + 0 + 0$$
 | 13 | `S_N2` | 1.3611111111 | 0 | 0 |
 | 14 | `S_PO4` | 0.0006666667 | 0 | 0 |
 | 16 | `S_H2O` | 0.1976011755 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.1379100644 | 0 | 0 |
 
 **Sum:** $B_{8,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1585,9 +1612,9 @@ Balance for process row $i=8$ ($\rho_{9}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.084 + -0.05 + 0 + -0.034 + -1.3611111111 + 1.3611111111 + 0 + 0$$
+$$B_{i,k} = 0.084 + -0.05 + 0 + -0.034 + -1.3611111111 + 1.3611111111 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1599,6 +1626,7 @@ $$B_{i,k} = 0.084 + -0.05 + 0 + -0.034 + -1.3611111111 + 1.3611111111 + 0 + 0$$
 | 13 | `S_N2` | 1.3611111111 | 1 | 1.3611111111 |
 | 14 | `S_PO4` | 0.0006666667 | 0 | 0 |
 | 16 | `S_H2O` | 0.1976011755 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.1379100644 | 0 | 0 |
 
 **Sum:** $B_{8,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -1611,9 +1639,9 @@ Balance for process row $i=8$ ($\rho_{9}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.016 + -0.0166666667 + 0 + 0 + 0 + 0 + 0.0006666667 + 0$$
+$$B_{i,k} = 0.016 + -0.0166666667 + 0 + 0 + 0 + 0 + 0.0006666667 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1625,6 +1653,7 @@ $$B_{i,k} = 0.016 + -0.0166666667 + 0 + 0 + 0 + 0 + 0.0006666667 + 0$$
 | 13 | `S_N2` | 1.3611111111 | 0 | 0 |
 | 14 | `S_PO4` | 0.0006666667 | 1 | 0.0006666667 |
 | 16 | `S_H2O` | 0.1976011755 | 0 | 0 |
+| 17 | `S_H_PROTON` | -0.1379100644 | 0 | 0 |
 
 **Sum:** $B_{8,4} \approx -1.301043e-18$ (check: `numpy.sum` = -1.301043e-18)
 
@@ -1637,9 +1666,9 @@ Balance for process row $i=8$ ($\rho_{9}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.043 + 0 + 0 + -0.00748 + -0.0952777778 + 0 + 6.666667e-05 + 0.1976011755$$
+$$B_{i,k} = 0.043 + 0 + 0 + -0.00748 + -0.0952777778 + 0 + 6.666667e-05 + 0.1976011755 + -0.1379100644$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -1651,10 +1680,11 @@ $$B_{i,k} = 0.043 + 0 + 0 + -0.00748 + -0.0952777778 + 0 + 6.666667e-05 + 0.1976
 | 13 | `S_N2` | 1.3611111111 | 0 | 0 |
 | 14 | `S_PO4` | 0.0006666667 | 0.1 | 6.666667e-05 |
 | 16 | `S_H2O` | 0.1976011755 | 1 | 0.1976011755 |
+| 17 | `S_H_PROTON` | -0.1379100644 | 1 | -0.1379100644 |
 
-**Sum:** $B_{8,5} \approx 0.1379100644$ (check: `numpy.sum` = 0.1379100644)
+**Sum:** $B_{8,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{8,5}| = 0.1379100644$ > 0.01
+**Status:** **OK** — $|B_{8,5}| = 0$ ≤ 0.01
 
 ### rho10
 
@@ -1667,7 +1697,7 @@ Balance for process row $i=9$ ($\rho_{10}$) and composition row $k=0$ (**COD**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -1 + 0 + 0 + 0.7503125 + 0.9996875 + -0.748125 + 0 + 0$$
 
@@ -1693,7 +1723,7 @@ Balance for process row $i=9$ ($\rho_{10}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.184 + 0.9612 + 0 + -0.49875 + -0.7503125 + 0 + 0.03312 + 0.4387425$$
 
@@ -1719,7 +1749,7 @@ Balance for process row $i=9$ ($\rho_{10}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.36 + 0.36 + 0 + 0 + 0 + 0 + 0 + 0$$
 
@@ -1745,7 +1775,7 @@ Balance for process row $i=9$ ($\rho_{10}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.084 + 0 + 0.084 + -0.21875 + -0.21875 + 0.4375 + 0 + 0$$
 
@@ -1771,7 +1801,7 @@ Balance for process row $i=9$ ($\rho_{10}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.016 + 0 + 0 + 0 + 0 + 0 + 0.016 + 0$$
 
@@ -1797,7 +1827,7 @@ Balance for process row $i=9$ ($\rho_{10}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.043 + 0 + 0.01848 + -0.0153125 + -0.0153125 + 0 + 0.0016 + 0.0552572418$$
 
@@ -1827,7 +1857,7 @@ Balance for process row $i=10$ ($\rho_{11}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
 
@@ -1852,7 +1882,7 @@ Balance for process row $i=10$ ($\rho_{11}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.156 + 0.1404 + 0.015 + -0.011214 + 0 + -8.977194e-19 + 0.011814$$
 
@@ -1877,7 +1907,7 @@ Balance for process row $i=10$ ($\rho_{11}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.318 + 0.2862 + 0.036 + -0.0042 + 0 + 0 + 0$$
 
@@ -1902,7 +1932,7 @@ Balance for process row $i=10$ ($\rho_{11}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.034 + 0.0135 + 0.006 + 0 + 0.0145 + 0 + 0$$
 
@@ -1927,7 +1957,7 @@ Balance for process row $i=10$ ($\rho_{11}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.005 + 0.0045 + 0.0005 + 0 + 0 + -4.336809e-19 + 0$$
 
@@ -1952,7 +1982,7 @@ Balance for process row $i=10$ ($\rho_{11}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0 + 0 + 0 + 0 + 0.00319 + -4.336809e-20 + 0.0014879093$$
 
@@ -1981,7 +2011,7 @@ Balance for process row $i=11$ ($\rho_{12}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0 + 0 + 0 + 0$$
 
@@ -2003,7 +2033,7 @@ Balance for process row $i=11$ ($\rho_{12}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 1.14543 + -0.57 + 0 + -0.57543$$
 
@@ -2025,7 +2055,7 @@ Balance for process row $i=11$ ($\rho_{12}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0.429 + -0.43 + 0 + 0$$
 
@@ -2047,7 +2077,7 @@ Balance for process row $i=11$ ($\rho_{12}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0 + -1 + 1 + 0$$
 
@@ -2069,7 +2099,7 @@ Balance for process row $i=11$ ($\rho_{12}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0 + 0 + 0 + 0$$
 
@@ -2091,7 +2121,7 @@ Balance for process row $i=11$ ($\rho_{12}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = 0 + -0.14 + 0.22 + -0.0724722922$$
 
@@ -2117,9 +2147,9 @@ Balance for process row $i=12$ ($\rho_{13}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2130,6 +2160,7 @@ $$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{12,0} \approx 2.775558e-17$ (check: `numpy.sum` = 2.775558e-17)
 
@@ -2142,9 +2173,9 @@ Balance for process row $i=12$ ($\rho_{13}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061$$
+$$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2155,6 +2186,7 @@ $$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 2.07 | 0.021735 |
 | 16 | `S_H2O` | -0.0118464736 | 7.94 | -0.094061 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{12,1} \approx -8.341892e-18$ (check: `numpy.sum` = -8.341892e-18)
 
@@ -2167,9 +2199,9 @@ Balance for process row $i=12$ ($\rho_{13}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0$$
+$$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2180,6 +2212,7 @@ $$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{12,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2192,9 +2225,9 @@ Balance for process row $i=12$ ($\rho_{13}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0$$
+$$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2205,6 +2238,7 @@ $$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 1 | 0.0474 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{12,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2217,9 +2251,9 @@ Balance for process row $i=12$ ($\rho_{13}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0$$
+$$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2230,6 +2264,7 @@ $$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 1 | 0.0105 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{12,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2242,9 +2277,9 @@ Balance for process row $i=12$ ($\rho_{13}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736$$
+$$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736 + 0.0433684736$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2255,10 +2290,11 @@ $$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736$$
 | 10 | `S_NH` | 0.0474 | 0.22 | 0.010428 |
 | 14 | `S_PO4` | 0.0105 | 0.1 | 0.00105 |
 | 16 | `S_H2O` | -0.0118464736 | 1 | -0.0118464736 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 1 | 0.0433684736 |
 
-**Sum:** $B_{12,5} \approx -0.0433684736$ (check: `numpy.sum` = -0.0433684736)
+**Sum:** $B_{12,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{12,5}| = 0.0433684736$ > 0.01
+**Status:** **OK** — $|B_{12,5}| = 0$ ≤ 0.01
 
 ### rho14
 
@@ -2271,9 +2307,9 @@ Balance for process row $i=13$ ($\rho_{14}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 1 + 0 + 0 + -17.15 + 0 + 16.1428571429 + 0$$
+$$B_{i,k} = 1 + 0 + 0 + -17.15 + 0 + 16.1428571429 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2284,6 +2320,7 @@ $$B_{i,k} = 1 + 0 + 0 + -17.15 + 0 + 16.1428571429 + 0$$
 | 14 | `S_PO4` | -0.016 | 0 | 0 |
 | 15 | `S_O2` | -16.1428571429 | -1 | 16.1428571429 |
 | 16 | `S_H2O` | 0.6993925873 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0276874127 | 0 | 0 |
 
 **Sum:** $B_{13,0} \approx -0.0071428571$ (check: `numpy.sum` = -0.0071428571)
 
@@ -2296,9 +2333,9 @@ Balance for process row $i=13$ ($\rho_{14}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.184 + -0.9612 + 0 + 11.4 + -0.03312 + -16.1428571429 + 5.5531771429$$
+$$B_{i,k} = 0.184 + -0.9612 + 0 + 11.4 + -0.03312 + -16.1428571429 + 5.5531771429 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2309,6 +2346,7 @@ $$B_{i,k} = 0.184 + -0.9612 + 0 + 11.4 + -0.03312 + -16.1428571429 + 5.553177142
 | 14 | `S_PO4` | -0.016 | 2.07 | -0.03312 |
 | 15 | `S_O2` | -16.1428571429 | 1 | -16.1428571429 |
 | 16 | `S_H2O` | 0.6993925873 | 7.94 | 5.5531771429 |
+| 17 | `S_H_PROTON` | 0.0276874127 | 0 | 0 |
 
 **Sum:** $B_{13,1} \approx 1.363561e-15$ (check: `numpy.sum` = 1.363561e-15)
 
@@ -2321,9 +2359,9 @@ Balance for process row $i=13$ ($\rho_{14}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.36 + -0.36 + 0 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = 0.36 + -0.36 + 0 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2334,6 +2372,7 @@ $$B_{i,k} = 0.36 + -0.36 + 0 + 0 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.016 | 0 | 0 |
 | 15 | `S_O2` | -16.1428571429 | 0 | 0 |
 | 16 | `S_H2O` | 0.6993925873 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0276874127 | 0 | 0 |
 
 **Sum:** $B_{13,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2346,9 +2385,9 @@ Balance for process row $i=13$ ($\rho_{14}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.084 + 0 + -5.084 + 5 + 0 + 0 + 0$$
+$$B_{i,k} = 0.084 + 0 + -5.084 + 5 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2359,6 +2398,7 @@ $$B_{i,k} = 0.084 + 0 + -5.084 + 5 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.016 | 0 | 0 |
 | 15 | `S_O2` | -16.1428571429 | 0 | 0 |
 | 16 | `S_H2O` | 0.6993925873 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0276874127 | 0 | 0 |
 
 **Sum:** $B_{13,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2371,9 +2411,9 @@ Balance for process row $i=13$ ($\rho_{14}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.016 + 0 + 0 + 0 + -0.016 + 0 + 0$$
+$$B_{i,k} = 0.016 + 0 + 0 + 0 + -0.016 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2384,6 +2424,7 @@ $$B_{i,k} = 0.016 + 0 + 0 + 0 + -0.016 + 0 + 0$$
 | 14 | `S_PO4` | -0.016 | 1 | -0.016 |
 | 15 | `S_O2` | -16.1428571429 | 0 | 0 |
 | 16 | `S_H2O` | 0.6993925873 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0276874127 | 0 | 0 |
 
 **Sum:** $B_{13,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2396,9 +2437,9 @@ Balance for process row $i=13$ ($\rho_{14}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.043 + 0 + -1.11848 + 0.35 + -0.0016 + 0 + 0.6993925873$$
+$$B_{i,k} = 0.043 + 0 + -1.11848 + 0.35 + -0.0016 + 0 + 0.6993925873 + 0.0276874127$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2409,10 +2450,11 @@ $$B_{i,k} = 0.043 + 0 + -1.11848 + 0.35 + -0.0016 + 0 + 0.6993925873$$
 | 14 | `S_PO4` | -0.016 | 0.1 | -0.0016 |
 | 15 | `S_O2` | -16.1428571429 | 0 | 0 |
 | 16 | `S_H2O` | 0.6993925873 | 1 | 0.6993925873 |
+| 17 | `S_H_PROTON` | 0.0276874127 | 1 | 0.0276874127 |
 
-**Sum:** $B_{13,5} \approx -0.0276874127$ (check: `numpy.sum` = -0.0276874127)
+**Sum:** $B_{13,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{13,5}| = 0.0276874127$ > 0.01
+**Status:** **OK** — $|B_{13,5}| = 0$ ≤ 0.01
 
 ### rho15
 
@@ -2425,7 +2467,7 @@ Balance for process row $i=14$ ($\rho_{15}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -1 + 0 + 0 + 0 + 1 + 0$$
 
@@ -2449,7 +2491,7 @@ Balance for process row $i=14$ ($\rho_{15}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.184 + 0.9612 + 0 + 0.03312 + -1 + 0.18968$$
 
@@ -2473,7 +2515,7 @@ Balance for process row $i=14$ ($\rho_{15}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.36 + 0.36 + 0 + 0 + 0 + 0$$
 
@@ -2497,7 +2539,7 @@ Balance for process row $i=14$ ($\rho_{15}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.084 + 0 + 0.084 + 0 + 0 + 0$$
 
@@ -2521,7 +2563,7 @@ Balance for process row $i=14$ ($\rho_{15}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.016 + 0 + 0 + 0.016 + 0 + 0$$
 
@@ -2545,7 +2587,7 @@ Balance for process row $i=14$ ($\rho_{15}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.043 + 0 + 0.01848 + 0.0016 + 0 + 0.0238891688$$
 
@@ -2573,9 +2615,9 @@ Balance for process row $i=15$ ($\rho_{16}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2586,6 +2628,7 @@ $$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{15,0} \approx 2.775558e-17$ (check: `numpy.sum` = 2.775558e-17)
 
@@ -2598,9 +2641,9 @@ Balance for process row $i=15$ ($\rho_{16}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061$$
+$$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2611,6 +2654,7 @@ $$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 2.07 | 0.021735 |
 | 16 | `S_H2O` | -0.0118464736 | 7.94 | -0.094061 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{15,1} \approx -8.341892e-18$ (check: `numpy.sum` = -8.341892e-18)
 
@@ -2623,9 +2667,9 @@ Balance for process row $i=15$ ($\rho_{16}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0$$
+$$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2636,6 +2680,7 @@ $$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{15,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2648,9 +2693,9 @@ Balance for process row $i=15$ ($\rho_{16}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0$$
+$$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2661,6 +2706,7 @@ $$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 1 | 0.0474 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{15,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2673,9 +2719,9 @@ Balance for process row $i=15$ ($\rho_{16}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0$$
+$$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2686,6 +2732,7 @@ $$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 1 | 0.0105 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{15,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2698,9 +2745,9 @@ Balance for process row $i=15$ ($\rho_{16}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736$$
+$$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736 + 0.0433684736$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2711,10 +2758,11 @@ $$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736$$
 | 10 | `S_NH` | 0.0474 | 0.22 | 0.010428 |
 | 14 | `S_PO4` | 0.0105 | 0.1 | 0.00105 |
 | 16 | `S_H2O` | -0.0118464736 | 1 | -0.0118464736 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 1 | 0.0433684736 |
 
-**Sum:** $B_{15,5} \approx -0.0433684736$ (check: `numpy.sum` = -0.0433684736)
+**Sum:** $B_{15,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{15,5}| = 0.0433684736$ > 0.01
+**Status:** **OK** — $|B_{15,5}| = 0$ ≤ 0.01
 
 ### rho17
 
@@ -2727,9 +2775,9 @@ Balance for process row $i=16$ ($\rho_{17}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 1 + 0 + 0 + 68.6 + -91.4 + 0 + 21.8571428571 + 0$$
+$$B_{i,k} = 1 + 0 + 0 + 68.6 + -91.4 + 0 + 21.8571428571 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2741,6 +2789,7 @@ $$B_{i,k} = 1 + 0 + 0 + 68.6 + -91.4 + 0 + 21.8571428571 + 0$$
 | 14 | `S_PO4` | -0.016 | 0 | 0 |
 | 15 | `S_O2` | -21.8571428571 | -1 | 21.8571428571 |
 | 16 | `S_H2O` | -0.0418812522 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0189612522 | 0 | 0 |
 
 **Sum:** $B_{16,0} \approx 0.0571428571$ (check: `numpy.sum` = 0.0571428571)
 
@@ -2753,9 +2802,9 @@ Balance for process row $i=16$ ($\rho_{17}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.184 + -0.9612 + 0 + -45.6 + 68.6 + -0.03312 + -21.8571428571 + -0.3325371429$$
+$$B_{i,k} = 0.184 + -0.9612 + 0 + -45.6 + 68.6 + -0.03312 + -21.8571428571 + -0.3325371429 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2767,6 +2816,7 @@ $$B_{i,k} = 0.184 + -0.9612 + 0 + -45.6 + 68.6 + -0.03312 + -21.8571428571 + -0.
 | 14 | `S_PO4` | -0.016 | 2.07 | -0.03312 |
 | 15 | `S_O2` | -21.8571428571 | 1 | -21.8571428571 |
 | 16 | `S_H2O` | -0.0418812522 | 7.94 | -0.3325371429 |
+| 17 | `S_H_PROTON` | 0.0189612522 | 0 | 0 |
 
 **Sum:** $B_{16,1} \approx -7.122211e-15$ (check: `numpy.sum` = -7.122211e-15)
 
@@ -2779,9 +2829,9 @@ Balance for process row $i=16$ ($\rho_{17}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.36 + -0.36 + 0 + 0 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = 0.36 + -0.36 + 0 + 0 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2793,6 +2843,7 @@ $$B_{i,k} = 0.36 + -0.36 + 0 + 0 + 0 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.016 | 0 | 0 |
 | 15 | `S_O2` | -21.8571428571 | 0 | 0 |
 | 16 | `S_H2O` | -0.0418812522 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0189612522 | 0 | 0 |
 
 **Sum:** $B_{16,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2805,9 +2856,9 @@ Balance for process row $i=16$ ($\rho_{17}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.084 + 0 + -0.084 + -20 + 20 + 0 + 0 + 0$$
+$$B_{i,k} = 0.084 + 0 + -0.084 + -20 + 20 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2819,6 +2870,7 @@ $$B_{i,k} = 0.084 + 0 + -0.084 + -20 + 20 + 0 + 0 + 0$$
 | 14 | `S_PO4` | -0.016 | 0 | 0 |
 | 15 | `S_O2` | -21.8571428571 | 0 | 0 |
 | 16 | `S_H2O` | -0.0418812522 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0189612522 | 0 | 0 |
 
 **Sum:** $B_{16,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2831,9 +2883,9 @@ Balance for process row $i=16$ ($\rho_{17}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.016 + 0 + 0 + 0 + 0 + -0.016 + 0 + 0$$
+$$B_{i,k} = 0.016 + 0 + 0 + 0 + 0 + -0.016 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2845,6 +2897,7 @@ $$B_{i,k} = 0.016 + 0 + 0 + 0 + 0 + -0.016 + 0 + 0$$
 | 14 | `S_PO4` | -0.016 | 1 | -0.016 |
 | 15 | `S_O2` | -21.8571428571 | 0 | 0 |
 | 16 | `S_H2O` | -0.0418812522 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0189612522 | 0 | 0 |
 
 **Sum:** $B_{16,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -2857,9 +2910,9 @@ Balance for process row $i=16$ ($\rho_{17}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = 0.043 + 0 + -0.01848 + -1.4 + 1.4 + -0.0016 + 0 + -0.0418812522$$
+$$B_{i,k} = 0.043 + 0 + -0.01848 + -1.4 + 1.4 + -0.0016 + 0 + -0.0418812522 + 0.0189612522$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -2871,10 +2924,11 @@ $$B_{i,k} = 0.043 + 0 + -0.01848 + -1.4 + 1.4 + -0.0016 + 0 + -0.0418812522$$
 | 14 | `S_PO4` | -0.016 | 0.1 | -0.0016 |
 | 15 | `S_O2` | -21.8571428571 | 0 | 0 |
 | 16 | `S_H2O` | -0.0418812522 | 1 | -0.0418812522 |
+| 17 | `S_H_PROTON` | 0.0189612522 | 1 | 0.0189612522 |
 
-**Sum:** $B_{16,5} \approx -0.0189612522$ (check: `numpy.sum` = -0.0189612522)
+**Sum:** $B_{16,5} \approx 2.671474e-16$ (check: `numpy.sum` = 2.671474e-16)
 
-**Status:** **FAIL** — $|B_{16,5}| = 0.0189612522$ > 0.01
+**Status:** **OK** — $|B_{16,5}| = 2.671474e-16$ ≤ 0.01
 
 ### rho18
 
@@ -2887,7 +2941,7 @@ Balance for process row $i=17$ ($\rho_{18}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -1 + 0 + 0 + 0 + 1 + 0$$
 
@@ -2911,7 +2965,7 @@ Balance for process row $i=17$ ($\rho_{18}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.184 + 0.9612 + 0 + 0.03312 + -1 + 0.18968$$
 
@@ -2935,7 +2989,7 @@ Balance for process row $i=17$ ($\rho_{18}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.36 + 0.36 + 0 + 0 + 0 + 0$$
 
@@ -2959,7 +3013,7 @@ Balance for process row $i=17$ ($\rho_{18}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.084 + 0 + 0.084 + 0 + 0 + 0$$
 
@@ -2983,7 +3037,7 @@ Balance for process row $i=17$ ($\rho_{18}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.016 + 0 + 0 + 0.016 + 0 + 0$$
 
@@ -3007,7 +3061,7 @@ Balance for process row $i=17$ ($\rho_{18}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
 $$B_{i,k} = -0.043 + 0 + 0.01848 + 0.0016 + 0 + 0.0238891688$$
 
@@ -3035,9 +3089,9 @@ Balance for process row $i=18$ ($\rho_{19}$) and composition row $k=0$ (**COD**)
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
+$$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -3048,6 +3102,7 @@ $$B_{i,k} = -1 + 0.9 + 0.1 + 0 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{18,0} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -3060,9 +3115,9 @@ Balance for process row $i=18$ ($\rho_{19}$) and composition row $k=1$ (**O**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061$$
+$$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -3073,6 +3128,7 @@ $$B_{i,k} = -0.184 + 0.1404 + 0.015 + 0.100926 + 0 + 0.021735 + -0.094061$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 2.07 | 0.021735 |
 | 16 | `S_H2O` | -0.0118464736 | 7.94 | -0.094061 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{18,1} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -3085,9 +3141,9 @@ Balance for process row $i=18$ ($\rho_{19}$) and composition row $k=2$ (**C**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0$$
+$$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -3098,6 +3154,7 @@ $$B_{i,k} = -0.36 + 0.2862 + 0.036 + 0.0378 + 0 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{18,2} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -3110,9 +3167,9 @@ Balance for process row $i=18$ ($\rho_{19}$) and composition row $k=3$ (**N**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0$$
+$$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -3123,6 +3180,7 @@ $$B_{i,k} = -0.084 + 0.0306 + 0.006 + 0 + 0.0474 + 0 + 0$$
 | 10 | `S_NH` | 0.0474 | 1 | 0.0474 |
 | 14 | `S_PO4` | 0.0105 | 0 | 0 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{18,3} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -3135,9 +3193,9 @@ Balance for process row $i=18$ ($\rho_{19}$) and composition row $k=4$ (**P**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0$$
+$$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0 + 0$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -3148,6 +3206,7 @@ $$B_{i,k} = -0.016 + 0.0045 + 0.001 + 0 + 0 + 0.0105 + 0$$
 | 10 | `S_NH` | 0.0474 | 0 | 0 |
 | 14 | `S_PO4` | 0.0105 | 1 | 0.0105 |
 | 16 | `S_H2O` | -0.0118464736 | 0 | 0 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 0 | 0 |
 
 **Sum:** $B_{18,4} \approx 0$ (check: `numpy.sum` = 0)
 
@@ -3160,9 +3219,9 @@ Balance for process row $i=18$ ($\rho_{19}$) and composition row $k=5$ (**H**):
 
 $$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$
 
-Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 16$:
+Non-zero contributions ($S_{i,j}\neq 0$), in column order $j = 0\ldots 17$:
 
-$$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736$$
+$$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736 + 0.0433684736$$
 
 | $j$ | Variable | $S_{i,j}$ | $I_{k,j}$ | $S_{i,j} I_{k,j}$ |
 |:---:|:---|:---:|:---:|:---:|
@@ -3173,8 +3232,9 @@ $$B_{i,k} = -0.043 + 0 + 0 + 0 + 0.010428 + 0.00105 + -0.0118464736$$
 | 10 | `S_NH` | 0.0474 | 0.22 | 0.010428 |
 | 14 | `S_PO4` | 0.0105 | 0.1 | 0.00105 |
 | 16 | `S_H2O` | -0.0118464736 | 1 | -0.0118464736 |
+| 17 | `S_H_PROTON` | 0.0433684736 | 1 | 0.0433684736 |
 
-**Sum:** $B_{18,5} \approx -0.0433684736$ (check: `numpy.sum` = -0.0433684736)
+**Sum:** $B_{18,5} \approx 0$ (check: `numpy.sum` = 0)
 
-**Status:** **FAIL** — $|B_{18,5}| = 0.0433684736$ > 0.01
+**Status:** **OK** — $|B_{18,5}| = 0$ ≤ 0.01
 

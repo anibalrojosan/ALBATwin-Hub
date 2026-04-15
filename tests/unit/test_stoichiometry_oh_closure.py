@@ -85,8 +85,8 @@ def test_stoichiometric_water_and_oxygen_exact_identical() -> None:
 
 
 def test_get_petersen_matrix_for_simulation_toggle() -> None:
-    S_si = get_petersen_matrix_for_simulation(use_oh_closure=False)
-    S_cl = get_petersen_matrix_for_simulation(use_oh_closure=True)
+    S_si = get_petersen_matrix_for_simulation(closure_mode="si")
+    S_cl = get_petersen_matrix_for_simulation(closure_mode="oxygen")
     assert S_si.shape == S_cl.shape
     assert not np.allclose(S_si[:, S_H2O], S_cl[:, S_H2O])
 

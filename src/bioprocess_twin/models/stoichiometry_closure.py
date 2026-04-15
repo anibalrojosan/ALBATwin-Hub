@@ -26,8 +26,18 @@ reaction once water is made explicit. See ``docs/mass_balances/stoichiometric_wa
 
 Hydrogen and charge may still not close with a single water column; see ADR 007.
 
-Simulation note: use ``get_petersen_matrix_for_simulation`` to select SI vs closure
-matrix; the ODE stack is not wired here yet.
+Simulation note: use ``get_petersen_matrix_for_simulation`` to select SI vs oxygen
+vs oxygen+proton closure; the ODE stack only consumes the **17-column** SI / oxygen
+matrices until ``StateVector`` is extended.
+
+**Proton column (after oxygen closure)** uses the same logic as water: once
+:math:`S_{\\mathrm{H2O}}` is stoichiometric for O, define
+:math:`R_i^{\\mathrm{H}}=\\sum_j S_{i,j}^{(\\mathrm{O})} I_{\\mathrm{H},j}` over the **17**
+SI columns. If residual hydrogen is assigned to **free protons** with
+:math:`I_{\\mathrm{H}}=1` (g H basis), the **unique** total :math:`\\beta_i` on
+``S_H_PROTON`` with :math:`B_{i,\\mathrm{H}}=0` is :math:`\\beta_i=-R_i^{\\mathrm{H}}`
+(``compute_stoichiometric_s_h_proton_total_for_row``). No charge / SI.6 coupling.
+See ``docs/mass_balances/proton_closure_rationale.md``.
 """
 
 from __future__ import annotations
@@ -47,6 +57,12 @@ from .stoichiometry import (
 )
 
 ClosureStrategy = Literal["stoichiometric_water", "oxygen_exact", "least_squares"]
+
+PetersenClosureMode = Literal["si", "oxygen", "oxygen_and_protons"]
+
+# Extended Petersen / composition for audit (not in Casagli SI 17-state list).
+N_STATE_EXTENDED = 18
+S_H_PROTON = 17
 
 # One-line chemistry anchors for the auxiliary water term (interpretation only).
 # Coefficients still follow L_i / I_O_S_H2O from the SI row + composition matrix.
@@ -86,11 +102,35 @@ class OHClosureDetail:
     balance_closed: np.ndarray | None = None
 
 
+@dataclass
+class OxygenProtonClosureDetail:
+    """Diagnostics for ``build_petersen_matrix_with_oxygen_and_proton_closure``."""
+
+    oxygen: OHClosureDetail
+    atol: float
+    rows_adjusted_proton: tuple[int, ...] = field(default_factory=tuple)
+    s_h_proton_by_row: dict[int, float] = field(default_factory=dict)
+    balance_extended: np.ndarray | None = None
+
+
+def get_composition_matrix_proton_closure() -> np.ndarray:
+    """
+    Return **6×18** composition matrix: SI block (17 columns) plus ``S_H_PROTON``.
+
+    Proton column: only **H** row is 1 (g H per g H inventory); other rows 0.
+    """
+    comp = get_composition_matrix()
+    ext = np.zeros((comp.shape[0], N_STATE_EXTENDED), dtype=float)
+    ext[:, :N_STATE] = comp
+    ext[5, S_H_PROTON] = 1.0
+    return ext
+
+
 def compute_mass_balance_matrix(
     S: np.ndarray,
     comp: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Return ``S @ comp.T`` with shape (19, 6)."""
+    """Return ``S @ comp.T`` with shape ``(S.shape[0], comp.shape[0])``."""
     if comp is None:
         comp = get_composition_matrix()
     return S @ comp.T
@@ -116,6 +156,30 @@ def compute_stoichiometric_s_h2o_total_for_row(
             continue
         net_o += float(S_si[i, j]) * float(comp[1, j])
     return -net_o / w_o
+
+
+def compute_stoichiometric_s_h_proton_total_for_row(
+    i: int,
+    S_oxygen_closed: np.ndarray,
+    comp17: np.ndarray,
+) -> float:
+    """
+    Total Petersen coefficient on ``S_H_PROTON`` that zeros elemental **hydrogen** for row ``i``.
+
+    After oxygen closure, let :math:`R_i^{\\mathrm{H}}=\\sum_{j=0}^{16} S_{i,j}^{(\\mathrm{O})}
+    I_{\\mathrm{H},j}`. That sum is the **g H** (per process normalization) carried by every
+    explicit column including stoichiometric water. If all hydrogen still to be tracked as
+    **free solvated protons** is placed in the column with :math:`I_{\\mathrm{H},S_{\\mathrm{H}^+}}=1`,
+    the **unique** :math:`\\beta_i` with :math:`B_{i,\\mathrm{H}}=0` is
+
+    .. math::
+
+        \\beta_i = -R_i^{\\mathrm{H}}.
+
+    Same numeric value as ``-B_{i,\\mathrm{H}}^{(\\mathrm{O})}``; the reading is **stoichiometric**
+    assignment of H to the proton inventory, not an independent fit parameter.
+    """
+    return -float(np.dot(S_oxygen_closed[i, :], comp17[5, :]))
 
 
 def list_oh_mass_balance_violations(
@@ -220,25 +284,87 @@ def build_petersen_matrix_with_oh_closure(
     return S_closed, B_closed, detail
 
 
-def get_petersen_matrix_for_simulation(*, use_oh_closure: bool = False) -> np.ndarray:
+def build_petersen_matrix_with_oxygen_and_proton_closure(
+    *,
+    atol: float | None = None,
+    strategy: ClosureStrategy = "stoichiometric_water",
+) -> tuple[np.ndarray, np.ndarray, OxygenProtonClosureDetail]:
     """
-    Return Petersen matrix for ``dC/dt = S^T rho``.
+    **19×18** Petersen copy: oxygen closure on ``S_H2O``, then **stoichiometric** proton column.
+
+    First 17 columns match ``build_petersen_matrix_with_oh_closure`` for the same
+    ``atol`` / ``strategy``. For each row, :math:`\\beta_i=` ``compute_stoichiometric_s_h_proton_total_for_row``;
+    if ``|\\beta_i| \\le atol`` the proton entry is left at **0**, otherwise ``S[i, S_H_PROTON]=\\beta_i``.
+
+    Does **not** enforce charge or SI.6; not compatible with the current 17-state ODE.
+    """
+    if atol is None:
+        atol = MASS_BALANCE_ATOL
+
+    S_o, _, detail_o = build_petersen_matrix_with_oh_closure(atol=atol, strategy=strategy)
+    comp17 = get_composition_matrix()
+    comp18 = get_composition_matrix_proton_closure()
+
+    S_ext = np.zeros((S_o.shape[0], N_STATE_EXTENDED), dtype=float)
+    S_ext[:, :N_STATE] = S_o
+
+    proton_coef: dict[int, float] = {}
+    rows_p: list[int] = []
+    for i in range(S_o.shape[0]):
+        beta = compute_stoichiometric_s_h_proton_total_for_row(i, S_o, comp17)
+        if abs(beta) <= atol:
+            continue
+        S_ext[i, S_H_PROTON] = beta
+        proton_coef[i] = beta
+        rows_p.append(i)
+
+    B_ext = compute_mass_balance_matrix(S_ext, comp18)
+    detail = OxygenProtonClosureDetail(
+        oxygen=detail_o,
+        atol=atol,
+        rows_adjusted_proton=tuple(rows_p),
+        s_h_proton_by_row=proton_coef,
+        balance_extended=B_ext,
+    )
+    return S_ext, B_ext, detail
+
+
+def get_petersen_matrix_for_simulation(
+    *,
+    closure_mode: PetersenClosureMode = "si",
+    use_oh_closure: bool | None = None,
+) -> np.ndarray:
+    """
+    Return Petersen matrix for ``dC/dt = S^T rho`` (when shape is **19×17**).
 
     Parameters
     ----------
+    closure_mode:
+        ``si`` — literal SI; ``oxygen`` — water closure; ``oxygen_and_protons`` —
+        **19×18** extended matrix (audit only; **not** usable in the 17-state reactor).
     use_oh_closure:
-        If True, use ``build_petersen_matrix_with_oh_closure`` (stoichiometric water
-        on ``S_H2O``). If False, use literal SI ``get_petersen_matrix()``.
+        **Legacy.** ``True`` → ``oxygen``. ``False`` → ``si`` (ignores ``closure_mode``).
+        ``None`` (default) → use ``closure_mode`` as-is (including ``oxygen_and_protons``).
 
     Note
     ----
-    When ``use_oh_closure`` is True, validate impacts on ``S_H2O`` dynamics and
-    pH / hydrochemistry before production runs (not yet integrated in solver).
+    For ``oxygen_and_protons``, callers must handle ``shape[1] == 18``. Validate
+    ``S_H2O`` / pH coupling before using oxygen closure in production.
     """
-    if use_oh_closure:
+    if use_oh_closure is True:
+        mode: PetersenClosureMode = "oxygen"
+    elif use_oh_closure is False:
+        mode = "si"
+    else:
+        mode = closure_mode
+
+    if mode == "si":
+        return get_petersen_matrix()
+    if mode == "oxygen":
         S, _, _ = build_petersen_matrix_with_oh_closure()
         return S
-    return get_petersen_matrix()
+    S, _, _ = build_petersen_matrix_with_oxygen_and_proton_closure()
+    return S
 
 
 def format_closure_inventory_markdown() -> str:

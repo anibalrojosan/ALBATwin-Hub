@@ -33,25 +33,30 @@ This note accompanies **[ADR 007](../adrs/007-elemental-mass-balance-oh-closure.
   with a single $\Delta$; it can worsen one element while improving the sum of squares.
 
 Hydrogen often **does not** reach zero with a single $S_{\mathrm{H2O}}$ degree of freedom;
-full closure may require an explicit acid–base carrier (e.g. $\mathrm{H}^+$) and charge
-bookkeeping (future work).
+an optional second step adds **`S_H_PROTON`** with **stoichiometric** $\\beta_i=-R_i^{\\mathrm{H}}$ (all H not carried by the 17 columns assigned to the free-proton inventory; see [`proton_closure_rationale.md`](proton_closure_rationale.md)). **Charge** and **SI.6 pH** are **not** included in that step.
 
 ## Artefacts
 
 - **[`MASS_BALANCES.md`](../MASS_BALANCES.md):** full 114-cell audit for **SI** $\mathbf{S}$.
-- **[`MASS_BALANCES_CLOSURE_OF_OXYGEN.md`](../MASS_BALANCES_CLOSURE_OF_OXYGEN.md):** same 114-cell audit for the **oxygen (water) closure** $\mathbf{S}$.
+- **[`MASS_BALANCES_CLOSURE_OF_OXYGEN.md`](../MASS_BALANCES_CLOSURE_OF_OXYGEN.md):** same 114-cell audit for the **oxygen (water) closure** $\mathbf{S}$ (19×17).
+- **[`MASS_BALANCES_CLOSURE_OF_PROTONS.md`](../MASS_BALANCES_CLOSURE_OF_PROTONS.md):** O + **H (proton)** closure with extended **19×18** $\mathbf{S}$ (audit only; not the Casagli 17-state vector).
 - **`list_oh_mass_balance_violations()`:** programmatic inventory of SI O/H failures.
 
 Regenerate Markdown:
 
 ```bash
 uv run python scripts/generate_mass_balances_md.py
-uv run python scripts/generate_mass_balances_md.py --closure
+uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen
+uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen-and-protons
 ```
+
+(`--closure` remains an alias for `--closure-of-oxygen`.)
 
 ## Simulation integration (later)
 
-`get_petersen_matrix_for_simulation(use_oh_closure=False)` returns the SI matrix by default.
-Setting `use_oh_closure=True` selects the closure copy **without** changing the rest of the
-ODE stack. Before enabling this in production runs, validate the effect on $S_{\mathrm{H2O}}$
-dynamics and consistency with pH / gas–liquid submodels from the ALBA SI.
+`get_petersen_matrix_for_simulation(closure_mode="si")` returns the SI matrix by default.
+`closure_mode="oxygen"` selects **19×17** water closure. `closure_mode="oxygen_and_protons"`
+returns **19×18** and is **not** compatible with the current 17-state ODE until `StateVector`
+is extended. Legacy: `use_oh_closure=True` is equivalent to `closure_mode="oxygen"`.
+Before enabling closure in production runs, validate $S_{\mathrm{H2O}}$ / proton bookkeeping
+and consistency with pH / gas–liquid submodels from the ALBA SI.
