@@ -19,7 +19,8 @@ matrix for mass balance validation. Based on Casagli et al. (2021) and ASM conve
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# State variable column indices (must match StateVector.to_array order)
+# State variable column indices (must match StateVector.to_array order for j=0..16;
+# extended layout appends S_H_PROTON at j=17 — see core.state.StateVectorVariant)
 # ---------------------------------------------------------------------------
 X_ALG, X_AOB, X_NOB, X_H, X_S, X_I = 0, 1, 2, 3, 4, 5
 S_S, S_I, S_IC, S_ND, S_NH, S_NO2, S_NO3, S_N2, S_PO4, S_O2, S_H2O = (

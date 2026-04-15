@@ -27,8 +27,8 @@ reaction once water is made explicit. See ``docs/mass_balances/stoichiometric_wa
 Hydrogen and charge may still not close with a single water column; see ADR 007.
 
 Simulation note: use ``get_petersen_matrix_for_simulation`` to select SI vs oxygen
-vs oxygen+proton closure; the ODE stack only consumes the **17-column** SI / oxygen
-matrices until ``StateVector`` is extended.
+vs oxygen+proton closure. Pair **19×17** ``S`` with ``StateVector.to_array(variant=si|oxygen)``;
+pair **19×18** ``S`` with ``StateVector.to_array(variant=oxygen_and_protons)`` (see ``core.state``).
 
 **Proton column (after oxygen closure)** uses the same logic as water: once
 :math:`S_{\\mathrm{H2O}}` is stoichiometric for O, define
