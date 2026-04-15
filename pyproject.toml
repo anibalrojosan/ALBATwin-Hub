@@ -37,7 +37,7 @@ python_files = ["test_*.py"]
 addopts = "--cov=src/bioprocess_twin --cov-report=term-missing"
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]

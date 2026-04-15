@@ -6,7 +6,6 @@ import numpy as np
 
 from bioprocess_twin.models.stoichiometry import (
     N_STATE,
-    S_H2O,
     get_composition_matrix,
     get_petersen_matrix,
 )
