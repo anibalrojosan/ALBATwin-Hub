@@ -1,8 +1,8 @@
 # Mass balances: $\mathbf{S}\mathbf{I}^\top$ with **stoichiometric** $S_{\mathrm{H2O}}$ closure (residual O as water-O)
 
-**Artifact:** `docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md` — oxygen closure via stoichiometric $S_{\mathrm{H2O}}$ only.
+**Artifact:** `docs/mass_balances/artifacts/audit-oxygen-closure-114cell.md` — oxygen closure via stoichiometric $S_{\mathrm{H2O}}$ only.
 
-This file uses **`build_petersen_matrix_with_oh_closure()`** (`stoichiometry_closure.py`): a **copy** of the SI Petersen matrix with column $S_{\mathrm{H2O}}$ set to $\alpha_i=-L_i/I_{\mathrm{O},S_{\mathrm{H2O}}}$ for failing rows ($L_i$ = elemental O from all non-water SI species). That is **stoichiometric water** under the convention that missing oxygen is water oxygen in this $\mathbf{I}$ basis (see `docs/mass_balances/stoichiometric_water_rationale.md`). **Hydrogen** may still deviate until a second closure species (e.g. $\mathrm{H}^+$) is modeled (ADR 007).
+This file uses **`build_petersen_matrix_with_oh_closure()`** (`stoichiometry_closure.py`): a **copy** of the SI Petersen matrix with column $S_{\mathrm{H2O}}$ set to $\alpha_i=-L_i/I_{\mathrm{O},S_{\mathrm{H2O}}}$ for failing rows ($L_i$ = elemental O from all non-water SI species). That is **stoichiometric water** under the convention that missing oxygen is water oxygen in this $\mathbf{I}$ basis (see `docs/mass_balances/guides/stoichiometric_water_rationale.md`). **Hydrogen** may still deviate until a second closure species (e.g. $\mathrm{H}^+$) is modeled (ADR 007).
 
 **Adjusted process rows (1-based $\rho$):** 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19. All non-$S_{\mathrm{H2O}}$ entries match `get_petersen_matrix()`.
 
@@ -280,7 +280,7 @@ Process index $i$ is **0-based** (`S[i, :]`, same as code). Casagli process numb
 
 ## Per-cell derivations
 
-Same layout as `MASS_BALANCES.md`; coefficients come from the **oxygen-closure** Petersen matrix ``S`` (this document).
+Same layout as `audit-si-114cell.md`; coefficients come from the **oxygen-closure** Petersen matrix ``S`` (this document).
 
 ### rho1
 

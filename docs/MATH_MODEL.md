@@ -6,6 +6,14 @@ This document serves as the technical specification for the ALBA (Algae-Bacteria
 
 ---
 
+## Table of contents
+- [1. Model Constants & Parameters](#1-model-constants--parameters)
+- [2. State Vector Definition](#2-state-vector-definition)
+  - [2.1 Digital twin: state and Petersen layouts](#21-digital-twin-state-and-petersen-layouts)
+- [3. Algebraic Sub-models](#3-algebraic-sub-models)
+- [4. Process Rate Equations](#4-process-rate-equations)
+- [5. Stoichiometric Matrix Construction Rules](#5-stoichiometric-matrix-construction-rules)
+
 ## 1. Model Constants & Parameters
 
 ### 1.1 Stoichiometric Parameters
@@ -94,6 +102,18 @@ The model state vector $\mathbf{y}$ consists of 17 variables.
 | 16 | $S_{O2}$ | $gO_2 \cdot m^{-3}$ | Dissolved Oxygen |
 | 17 | $S_{H2O}$ | $gH \cdot m^{-3}$ | Water (Balance term) |
 
+### 2.1 Digital twin: state and Petersen layouts
+
+The published ALBA state list above is the **17-component Casagli SI** basis. The reference implementation also supports **optional elemental closure** layers (see [ADR 007](adrs/007-elemental-mass-balance-oh-closure.md), [STOICHIOMETRY.md](STOICHIOMETRY.md), [mass_balances/README.md](mass_balances/README.md)):
+
+| Layout | Code `closure_mode` / `StateVectorVariant` | Length of $\mathbf{C}$ | Shape of $\mathbf{S}$ |
+| :--- | :--- | :---: | :--- |
+| SI literal | `si` | 17 | 19 × 17 |
+| O closed via $S_{\mathrm{H2O}}$ | `oxygen` | 17 | 19 × 17 |
+| O + H (proton inventory) | `oxygen_and_protons` | 18 | 19 × 18 |
+
+The **18th** component is **`S_{H\_PROTON}`** (g H·m⁻³, free-proton pool), appended after $S_{\mathrm{H2O}}$ in the ODE array. Pair **`get_petersen_matrix_for_simulation(closure_mode=...)`** with **`StateVector.to_array(variant=...)`** so $\mathrm{d}\mathbf{C}/\mathrm{d}t$ and $\mathbf{S}$ share the same **n**. The process rate vector $\boldsymbol{\rho}$ remains **$\mathbb{R}^{19}$** in all layouts.
+
 ---
 
 ## 3. Algebraic Sub-models
@@ -120,7 +140,7 @@ For Algae.
 ---
 
 ## 4. Process Rate Equations ($\rho$)
-The system defines 19 biological processes using **Liebig's Law of the Minimum** for nutrient limitation.
+The system defines 19 biological processes using **Liebig's Law of the Minimum** for nutrient limitation. The expressions below depend only on concentrations and environmental factors; they do **not** change when switching SI vs oxygen vs proton **Petersen** closure modes (closure affects $\mathbf{S}$, not the definition of $\rho_1,\ldots,\rho_{19}$).
 
 ### Algae ($X_{ALG}$)
 1.  **Growth on $NH_4$:**
@@ -172,7 +192,11 @@ The system defines 19 biological processes using **Liebig's Law of the Minimum**
 
 ## 5. Stoichiometric Matrix Construction Rules
 
-The stoichiometric coefficients ($\alpha_{i,j}$) for the matrix $\mathbf{S}$ ($19 \times 17$) are calculated dynamically based on mass and charge balances.
+The biological Petersen matrix $\mathbf{S}$ used in $\mathrm{d}\mathbf{C}/\mathrm{d}t = \mathbf{S}^T \boldsymbol{\rho}$ has **19 process rows**. In the **SI** layout it has **17 columns** (the state variables in §2). With **proton closure**, an **18th** column **`S_{H\_PROTON}`** extends $\mathbf{S}$ and $\mathbf{I}$ for elemental H auditing; see §2.1 and [STOICHIOMETRY.md](STOICHIOMETRY.md).
+
+Full SI diagrams may list additional **equilibrium / gas-transfer** rows (e.g. dissolution of O₂, CO₂, NH₃). Those rows are **not** part of `get_petersen_matrix()` today; they are planned with the hydrochemistry / gas-transfer workstream.
+
+Coefficients $\alpha_{i,j}$ are derived from mass and COD conventions documented in the supplementary material and [STOICHIOMETRY.md](STOICHIOMETRY.md).
 
 **Example Rule (Algal Growth on $NH_4$, $\rho_1$):**
 *   $X_{ALG}$ (Production): $+1$

@@ -3,13 +3,18 @@
 ### 1. Petersen Matrix
 
 This matrix shows the **dynamic interaction** between the processes and the variables. 
-*   **Rows:** The 19 biological processes (e.g. "Phototrophic growth on NH₄⁺").
-*   **Columns:** The 17 state variables (e.g. "Ammonium", "Oxygen").
+*   **Rows (1–19):** The **biological** processes implemented in code as `get_petersen_matrix()` (e.g. phototrophic growth on NH₄⁺). The rate vector $\boldsymbol{\rho}$ has **19** entries, one per row.
+*   **Rows (20–22) in the SI diagram:** Dissolution of O₂, CO₂, and NH₃ (gas–liquid / equilibrium-style terms in the full ALBA table). They are **not** included in the package Petersen matrix yet; see `get_petersen_matrix()` docstring (“rho20–22 excluded; hydrochemistry sprint”).
+*   **Columns:** **17** state variables in the Casagli SI layout, or **18** when using optional **O + proton** closure (extra column **`S_H_PROTON`**; see [MATH_MODEL.md](MATH_MODEL.md) §2.1 and [guides/OH_CLOSURE.md](mass_balances/guides/OH_CLOSURE.md)).
 *   **Cells ($\alpha_{i,j}$):** Indicate if a variable is consumed (negative value), produced (positive value) or not affected (empty/zero cell) by that specific process.
 
-They are used to calculate the **differential equations (ODEs)**. The variation of a state variable in time ($dC/dt$) is the sum of the processes that affect it:
-$$\frac{d\mathbf{C}}{dt} = \mathbf{S}^T \cdot \boldsymbol{\rho}$$
-Where $\mathbf{S}$ is this matrix and $\boldsymbol{\rho}$ are the reaction rates.
+They are used to calculate the **differential equations (ODEs)**. The variation of a state variable in time is the sum of the processes that affect it:
+
+$$
+\frac{d\mathbf{C}}{dt} = \mathbf{S}^T \cdot \boldsymbol{\rho}
+$$
+
+where $\mathbf{S}$ has shape **19 × n** with **n = 17** or **n = 18**, $\boldsymbol{\rho} \in \mathbb{R}^{19}$, and $\mathbf{C} \in \mathbb{R}^n$ must match the column layout. Use `get_petersen_matrix_for_simulation(closure_mode=...)` together with `StateVector.to_array(variant=...)` so dimensions stay consistent.
 
 | component j→ / process i↓ | X_ALG | X_AOB | X_NOB | X_H  | X_S  | X_I  | S_S   | S_I   | S_IC  | S_ND  | S_NH  | S_NO2 | S_NO3 | S_N2  | S_PO4 | S_O2  | S_H2O |
 |--------------------------|-------|-------|-------|------|------|------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|
@@ -47,8 +52,8 @@ Where $\mathbf{S}$ is this matrix and $\boldsymbol{\rho}$ are the reaction rates
 ### 2. Composition matrix
 
 This matrix shows the **fixed chemical composition** of each variable.
-*   **Rows:** The basic conserved elements (Carbon, Nitrogen, Phosphorus, COD, etc.).
-*   **Columns:** The 17 state variables.
+*   **Rows:** The basic conserved elements (Carbon, Nitrogen, Phosphorus, COD, etc.): **6** rows (COD, O, C, N, P, H) in code.
+*   **Columns:** **17** state variables for the SI layout (`get_composition_matrix()`). For **proton closure** audits, the code uses **`get_composition_matrix_proton_closure()`**: **6 × 18** with an extra column where only **hydrogen** is assigned to the free-proton inventory (**g H·m⁻³** basis); see [guides/proton_closure_rationale.md](mass_balances/guides/proton_closure_rationale.md).
 *   **Cells ($i_{k,j}$):** Indicate the amount of a chemical element $k$ that contains a unit of the component $j$ (e.g. "How many grams of Nitrogen are in 1 gram of Algae biomass").
 
 | k↓ | j→ | X_ALG | X_AOB | X_NOB | X_H  | X_S  | X_I  | S_S   | S_I   | S_IC | S_ND | S_NH | S_NO2 | S_NO3 | S_N2 | S_PO4 | S_O2 | S_H2O |
@@ -77,4 +82,6 @@ It has two critical uses:
 
 **See also:** [Stoichiometry external comparison](stoichiometry-external-comparison.md) — alignment of code and docs with the Casagli SI, comparison to ASM1/ASM3, benchmark/software references, and ALBA-specific $ COD / (S_{H2O}) $ conventions.
 
-**Policy (elemental O/H):** [ADR 007: Elemental mass-balance O/H closure](adrs/007-elemental-mass-balance-oh-closure.md) — project choice to extend $\mathbf{S}$ (and related bookkeeping) for strict water/proton–aware closure in the digital twin.
+**Policy (elemental O/H):** [ADR 007: Elemental mass-balance O/H closure](adrs/007-elemental-mass-balance-oh-closure.md) — extend $\mathbf{S}$ (and related bookkeeping) for strict water/proton–aware closure in the digital twin.
+
+**Closure modes (summary):** `si` → **19×17** $\mathbf{S}$, **17** ODE components; `oxygen` → **19×17** with stoichiometric adjustment on **$S_{\mathrm{H2O}}$** only; `oxygen_and_protons` → **19×18** $\mathbf{S}$ with **`S_H_PROTON`**. The elemental audit $\mathbf{B} = \mathbf{S}\mathbf{I}^\top$ always has **114** cells (19×6). Hub for generated audits and CLI: [mass_balances/README.md](mass_balances/README.md).

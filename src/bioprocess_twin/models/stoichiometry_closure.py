@@ -22,7 +22,7 @@ This is algebraically the same as adjusting the SI row by
 :math:`\\Delta_i=-B_{i,\\mathrm{O}}^{\\mathrm{SI}}/I_{\\mathrm{O},S_{\\mathrm{H2O}}}` when
 only the water column moves, but the **interpretation** is stoichiometric: :math:`\\alpha_i`
 is the net **g H** (per process normalization) tied to water formation implied by the SI
-reaction once water is made explicit. See ``docs/mass_balances/stoichiometric_water_rationale.md``.
+reaction once water is made explicit. See ``docs/mass_balances/guides/stoichiometric_water_rationale.md``.
 
 Hydrogen and charge may still not close with a single water column; see ADR 007.
 
@@ -37,7 +37,7 @@ SI columns. If residual hydrogen is assigned to **free protons** with
 :math:`I_{\\mathrm{H}}=1` (g H basis), the **unique** total :math:`\\beta_i` on
 ``S_H_PROTON`` with :math:`B_{i,\\mathrm{H}}=0` is :math:`\\beta_i=-R_i^{\\mathrm{H}}`
 (``compute_stoichiometric_s_h_proton_total_for_row``). No charge / SI.6 coupling.
-See ``docs/mass_balances/proton_closure_rationale.md``.
+See ``docs/mass_balances/guides/proton_closure_rationale.md``.
 """
 
 from __future__ import annotations
@@ -383,5 +383,7 @@ def format_closure_inventory_markdown() -> str:
     if not viol:
         lines.append("| — | — | *(no violations)* | |")
     lines.append("")
-    lines.append("See also `docs/MASS_BALANCES.md` for the full 114-cell audit.")
+    lines.append(
+        "See also `docs/mass_balances/artifacts/audit-si-114cell.md` for the full 114-cell audit."
+    )
     return "\n".join(lines) + "\n"

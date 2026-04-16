@@ -31,11 +31,12 @@ Following **ADR 007** (policy **(a)**), the twin needs a **clear extension layer
 - **`scripts/generate_mass_balances_md.py`:
     - `--closure-of-oxygen`, `--closure-of-oxygen-and-protons`, `--closure` (alias for oxygen); 
     - Markdown generator supports **17 or 18** columns; 
-    - outputs include `docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md` and `docs/MASS_BALANCES_CLOSURE_OF_PROTONS.md`.
+    - generated audits under `docs/mass_balances/artifacts/` (`audit-si-114cell.md`, `audit-oxygen-closure-114cell.md`, `audit-oxygen-proton-closure-114cell.md`); index at `docs/MASS_BALANCES.md`.
 - **Documentation:** 
-    - `docs/mass_balances/stoichiometric_water_rationale.md`, 
-    - `docs/mass_balances/proton_closure_rationale.md`, 
-    - `docs/mass_balances/OH_CLOSURE.md`, 
+    - `docs/mass_balances/guides/stoichiometric_water_rationale.md`, 
+    - `docs/mass_balances/guides/proton_closure_rationale.md`, 
+    - `docs/mass_balances/guides/OH_CLOSURE.md`, 
+    - hub `docs/mass_balances/README.md`, 
     - and **ADR 007** implementation notes cross-link the three audit artifacts and CLI regeneration commands.
 - **`src/bioprocess_twin/core/state.py`:** 
     - `StateVectorVariant` (`si`, `oxygen`, `oxygen_and_protons`) and `state_array_len`; 
@@ -60,15 +61,15 @@ For each process row, once all **non-water** species fix $L_i$ (oxygen in explic
 ## [2026-03-31] - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)
 
 ### Context & Goals
-Mass balance tests still showed large residuals for **oxygen** and **hydrogen** even after careful transcription of Casagli et al. (2021) supplementary tables. I reviewed the literature and used **DeepResearch** (external literature-style synthesis) and a **term-by-term worksheet** in [**`Balance of oxygen for rho14`**](../mass_balances/balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md) for aerobic AOB growth (**rho14**) to separate “transcription error” from **structural** modeling conventions.
+Mass balance tests still showed large residuals for **oxygen** and **hydrogen** even after careful transcription of Casagli et al. (2021) supplementary tables. I reviewed the literature and used **DeepResearch** (external literature-style synthesis) and a **term-by-term worksheet** in [**`Balance of oxygen for rho14`**](../mass_balances/case-studies/rho14-aob-oxygen-balance.md) for aerobic AOB growth (**rho14**) to separate “transcription error” from **structural** modeling conventions.
 
 ### Technical Implementation
-- **Documentation:** [**`Balance of oxygen for rho14`**](../mass_balances/balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md) documents the algebraic check $B_{14,\mathrm{O}} = \sum_j S_{13,j} I_{\mathrm{O},j}$ with numeric breakdown; it matches the automated test `S @ I.T` and reproduces the residual $\approx -5.55$ with SI-aligned coefficients.
+- **Documentation:** [**`Balance of oxygen for rho14`**](../mass_balances/case-studies/rho14-aob-oxygen-balance.md) documents the algebraic check $B_{14,\mathrm{O}} = \sum_j S_{13,j} I_{\mathrm{O},j}$ with numeric breakdown; it matches the automated test `S @ I.T` and reproduces the residual $\approx -5.55$ with SI-aligned coefficients.
 - **Research output:** Internal report  argues the residual is **not** a typo in $Y_{\mathrm{AOB}}$ or COD/N tracking, but missing **explicit water ($S_{\mathrm{H2O}}$)** and **acid–base carriers (e.g. $\mathrm{H}^+$)** on **ASM-style** bacterial rows. Algal processes in ALBA (rho1–rho3) already include $S_{\mathrm{H2O}}$ terms in SI.3.3; many bacterial processes do not, which breaks **strict elemental** O and H closure while leaving **COD/electron** balances (ASM tradition) largely intact.
 - **Takeaway for the codebase:** Passing a strict $B \approx 0$ audit requires either extending Petersen rows with closure species (water/protons) and consistent `I`, or scoping the test to elements the SI was designed to conserve (documented policy decision).
 
 ### 💡 Deep Dive: Why Perfect SI Transcription Does Not Imply $B_{i,\mathrm{O}} = 0$
-The test enforces $\sum_j S_{i,j} I_{k,j} \approx 0$ for every process $i$ and element $k$. ASM-class matrices are usually built so **COD** (electron balance) and **nutrients** close for design variables; **water** is treated as infinite and **pH** as buffered, so **atomic O and H** are often not closed in `S`. ALBA mixes **algal** stoichiometry (with $S_{\mathrm{H2O}}$) and **bacterial** blocks inherited from that tradition. For rho14, $I_{\mathrm{O}}$ for $\mathrm{NH_4^+}$ is zero (no O in the ion), while $\mathrm{NO_2^-}$ carries oxygen; without a compensating **water** (or equivalent) term in `S`, the same SI numbers that are correct for ASM-style energy bookkeeping can still fail a **full** O (and H) matrix audit—exactly what [**`Balance of oxygen for rho14`**](../mass_balances/balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md) quantifies.
+The test enforces $\sum_j S_{i,j} I_{k,j} \approx 0$ for every process $i$ and element $k$. ASM-class matrices are usually built so **COD** (electron balance) and **nutrients** close for design variables; **water** is treated as infinite and **pH** as buffered, so **atomic O and H** are often not closed in `S`. ALBA mixes **algal** stoichiometry (with $S_{\mathrm{H2O}}$) and **bacterial** blocks inherited from that tradition. For rho14, $I_{\mathrm{O}}$ for $\mathrm{NH_4^+}$ is zero (no O in the ion), while $\mathrm{NO_2^-}$ carries oxygen; without a compensating **water** (or equivalent) term in `S`, the same SI numbers that are correct for ASM-style energy bookkeeping can still fail a **full** O (and H) matrix audit—exactly what [**`Balance of oxygen for rho14`**](../mass_balances/case-studies/rho14-aob-oxygen-balance.md) quantifies.
 
 ### Next Steps
 - **Policy (2026-04-14):** **(a)** adopted — extend the model for strict O/H closure; recorded in [**ADR 007**](../adrs/007-elemental-mass-balance-oh-closure.md) (also linked from `SPRINTS.md` and `docs/STOICHIOMETRY.md`).
@@ -91,7 +92,7 @@ After aligning `stoichiometry.py` with corrected project docs and ALBA SI tables
 - **`docs/STOICHIOMETRY.md`**, **`docs/development/DEVLOG.md`:** Refreshed for current matrices and follow-up on mass balance investigation.
 
 ### 💡 Deep Dive: From Scalar `atol` to 114 Cells
-A single `np.allclose` on `S @ I.T` hides which **process–element** pairs fail. Printing **max |residual|** per element (with `argmax` row) and **every** of the 19×6 cells turns mass balance debugging into a checklist: e.g. rho14 vs O points straight to AOB + inorganic nitrogen + $S_{\mathrm{O2}}$ interactions, which motivated the explicit rho14 worksheet in [**`Balance of oxygen for rho14`**](../mass_balances/balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md)).
+A single `np.allclose` on `S @ I.T` hides which **process–element** pairs fail. Printing **max |residual|** per element (with `argmax` row) and **every** of the 19×6 cells turns mass balance debugging into a checklist: e.g. rho14 vs O points straight to AOB + inorganic nitrogen + $S_{\mathrm{O2}}$ interactions, which motivated the explicit rho14 worksheet in [**`Balance of oxygen for rho14`**](../mass_balances/case-studies/rho14-aob-oxygen-balance.md)).
 
 ### Next Steps
 - Same as follow-up from mass balance investigation: resolve O/H (and remaining COD) closure policy.
