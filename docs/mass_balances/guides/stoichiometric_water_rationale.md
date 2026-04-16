@@ -70,7 +70,7 @@ $$
 
 ## Relation to ρ₁₄ (AOB)
 
-The worksheet [`balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md`](balance_of_oxygen_for_rho_14_Aerobic_growth_of_X_AOB_on_NH4+.md) computes, for biomass yield in g COD, approximately
+The worksheet [`rho14-aob-oxygen-balance.md`](../case-studies/rho14-aob-oxygen-balance.md) computes, for biomass yield in g COD, approximately
 
 $$
 B_{14,\mathrm{O}}^{\mathrm{SI}}\approx -5.55\ \mathrm{g\,O}
@@ -99,4 +99,4 @@ Remaining **hydrogen** imbalance usually means an explicit **acid–base** speci
 ## Code
 
 `compute_stoichiometric_s_h2o_total_for_row` and `build_petersen_matrix_with_oh_closure` in
-[`stoichiometry_closure.py`](../../src/bioprocess_twin/models/stoichiometry_closure.py).
+[`stoichiometry_closure.py`](../../../src/bioprocess_twin/models/stoichiometry_closure.py).

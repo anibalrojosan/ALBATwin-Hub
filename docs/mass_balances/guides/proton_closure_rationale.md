@@ -1,6 +1,6 @@
 # Rationale: **`S_H_PROTON`** as stoichiometric hydrogen in free protons (audit layer)
 
-This document defines the **18th Petersen column** used in **`build_petersen_matrix_with_oxygen_and_proton_closure()`** ([`stoichiometry_closure.py`](../../src/bioprocess_twin/models/stoichiometry_closure.py)). It does **not** implement charge balance, SI.6 speciation, or pH dynamics.
+This document defines the **18th Petersen column** used in **`build_petersen_matrix_with_oxygen_and_proton_closure()`** ([`stoichiometry_closure.py`](../../../src/bioprocess_twin/models/stoichiometry_closure.py)). It does **not** implement charge balance, SI.6 speciation, or pH dynamics.
 
 The coefficient on this column is **not** a free knob to “make the H test pass”: it is the **only** value consistent with (i) the oxygen-closed row **`S^{(O)}`**, (ii) the **17-column** composition matrix **`I`**, and (iii) the modelling convention that **all elemental hydrogen not already carried by those columns** is booked as **g H in free solvated protons** with **`I_H = 1`**.
 

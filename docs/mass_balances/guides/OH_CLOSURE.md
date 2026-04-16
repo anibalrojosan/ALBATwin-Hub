@@ -1,12 +1,12 @@
 # Oxygen / hydrogen closure (experimental Petersen copy)
 
-This note accompanies **[ADR 007](../adrs/007-elemental-mass-balance-oh-closure.md)** and the SI-faithful audit in [`MASS_BALANCES.md`](../MASS_BALANCES.md).
+This note accompanies **[ADR 007](../../adrs/007-elemental-mass-balance-oh-closure.md)** and the SI-faithful audit in [`audit-si-114cell.md`](../artifacts/audit-si-114cell.md).
 
 ## Strategy
 
 - **`get_petersen_matrix()`** remains the **literal Casagli SI.3.3** transcription.
 - **`build_petersen_matrix_with_oh_closure()`** in
-  [`src/bioprocess_twin/models/stoichiometry_closure.py`](../../src/bioprocess_twin/models/stoichiometry_closure.py)
+  [`src/bioprocess_twin/models/stoichiometry_closure.py`](../../../src/bioprocess_twin/models/stoichiometry_closure.py)
   returns a **NumPy copy** of that matrix. Only column **`S_H2O`** may differ from the SI.
 - For each process row $i$ with $|B_{i,\mathrm{O}}| > \texttt{atol}$ or
   $|B_{i,\mathrm{H}}| > \texttt{atol}$ (using `MASS_BALANCE_ATOL` in
@@ -37,9 +37,9 @@ an optional second step adds **`S_H_PROTON`** with **stoichiometric** $\\beta_i=
 
 ## Artefacts
 
-- **[`MASS_BALANCES.md`](../MASS_BALANCES.md):** full 114-cell audit for **SI** $\mathbf{S}$.
-- **[`MASS_BALANCES_CLOSURE_OF_OXYGEN.md`](../MASS_BALANCES_CLOSURE_OF_OXYGEN.md):** same 114-cell audit for the **oxygen (water) closure** $\mathbf{S}$ (19×17).
-- **[`MASS_BALANCES_CLOSURE_OF_PROTONS.md`](../MASS_BALANCES_CLOSURE_OF_PROTONS.md):** O + **H (proton)** closure with extended **19×18** $\mathbf{S}$ (audit only; not the Casagli 17-state vector).
+- **[`audit-si-114cell.md`](../artifacts/audit-si-114cell.md):** full 114-cell audit for **SI** $\mathbf{S}$.
+- **[`audit-oxygen-closure-114cell.md`](../artifacts/audit-oxygen-closure-114cell.md):** same 114-cell audit for the **oxygen (water) closure** $\mathbf{S}$ (19×17).
+- **[`audit-oxygen-proton-closure-114cell.md`](../artifacts/audit-oxygen-proton-closure-114cell.md):** O + **H (proton)** closure with extended **19×18** $\mathbf{S}$ (audit only; not the Casagli 17-state vector).
 - **`list_oh_mass_balance_violations()`:** programmatic inventory of SI O/H failures.
 
 Regenerate Markdown:

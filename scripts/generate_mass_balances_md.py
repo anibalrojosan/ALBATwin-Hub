@@ -11,6 +11,7 @@ import numpy as np
 
 # Repo root on sys.path when run as `uv run python scripts/generate_mass_balances_md.py`
 _ROOT = Path(__file__).resolve().parents[1]
+_ARTIFACTS_DIR = _ROOT / "docs" / "mass_balances" / "artifacts"
 _src = str(_ROOT / "src")
 if _src not in sys.path:
     sys.path.insert(0, _src)
@@ -242,6 +243,8 @@ def _generate_si() -> str:
         comp,
         title="# Mass balances: explicit $\\mathbf{S}\\mathbf{I}^\\top$ cells (ALBA stoichiometry)",
         preamble_paragraphs=[
+            "**Artifact:** `docs/mass_balances/artifacts/audit-si-114cell.md` — SI-faithful "
+            "`get_petersen_matrix()` (Casagli SI.3.3).",
             "This file documents the **elemental and COD-style mass-balance check** "
             "used in unit tests: for each biological process row $i$ of the Petersen "
             "matrix $\\mathbf{S}$ and each row $k$ of the composition matrix "
@@ -277,14 +280,15 @@ def _generate_closure() -> str:
             "$S_{\\mathrm{H2O}}$ closure (residual O as water-O)"
         ),
         preamble_paragraphs=[
-            "**Artifact:** `docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md` — oxygen closure via "
-            "stoichiometric $S_{\\mathrm{H2O}}$ only.",
+            "**Artifact:** `docs/mass_balances/artifacts/audit-oxygen-closure-114cell.md` — "
+            "oxygen closure via stoichiometric $S_{\\mathrm{H2O}}$ only.",
             "This file uses **`build_petersen_matrix_with_oh_closure()`** "
             "(`stoichiometry_closure.py`): a **copy** of the SI Petersen matrix with "
             "column $S_{\\mathrm{H2O}}$ set to $\\alpha_i=-L_i/I_{\\mathrm{O},S_{\\mathrm{H2O}}}$ "
             "for failing rows ($L_i$ = elemental O from all non-water SI species). "
             "That is **stoichiometric water** under the convention that missing oxygen is "
-            "water oxygen in this $\\mathbf{I}$ basis (see `docs/mass_balances/stoichiometric_water_rationale.md`). "
+            "water oxygen in this $\\mathbf{I}$ basis (see "
+            "`docs/mass_balances/guides/stoichiometric_water_rationale.md`). "
             "**Hydrogen** may still deviate until a second closure species (e.g. $\\mathrm{H}^+$) "
             "is modeled (ADR 007).",
             f"**Adjusted process rows (1-based $\\rho$):** {rows or '*(none)*'}. "
@@ -293,7 +297,7 @@ def _generate_closure() -> str:
         atol=MASS_BALANCE_ATOL,
         regen_command="uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen",
         derivation_blurb=(
-            "Same layout as `MASS_BALANCES.md`; coefficients come from the **oxygen-closure** "
+            "Same layout as `audit-si-114cell.md`; coefficients come from the **oxygen-closure** "
             "Petersen matrix ``S`` (this document)."
         ),
     )
@@ -317,15 +321,15 @@ def _generate_closure_oxygen_and_protons() -> str:
             "(proton) closure — extended **19×18** $\\mathbf{S}$"
         ),
         preamble_paragraphs=[
-            "**Artifact:** `docs/MASS_BALANCES_CLOSURE_OF_PROTONS.md` — audit layer only "
-            "(**not** SI Casagli 17 states; **no** charge / SI.6 pH).",
+            "**Artifact:** `docs/mass_balances/artifacts/audit-oxygen-proton-closure-114cell.md` "
+            "— audit layer only (**not** SI Casagli 17 states; **no** charge / SI.6 pH).",
             "This file uses **`build_petersen_matrix_with_oxygen_and_proton_closure()`**: "
             "oxygen closure on **`S_H2O`**, then **`S_H_PROTON`** with "
             "**`compute_stoichiometric_s_h_proton_total_for_row`** "
             "($\\beta_i=-R_i^{\\mathrm{H}}$: all H not in the 17 explicit columns booked as "
             "g H in free protons; not a separate tuning parameter). "
             "Non-zero only where $|\\beta_i| > \\texttt{atol}$. See "
-            "`docs/mass_balances/proton_closure_rationale.md`.",
+            "`docs/mass_balances/guides/proton_closure_rationale.md`.",
             f"**O-adjusted process rows (1-based $\\rho$):** {rows_o or '*(none)*'}. "
             f"**Proton-adjusted rows:** {rows_p or '*(none)*'}. "
             "Columns **0–16** match `build_petersen_matrix_with_oh_closure()`.",
@@ -346,12 +350,12 @@ def main() -> None:
     parser.add_argument(
         "--closure-of-oxygen",
         action="store_true",
-        help="Write docs/MASS_BALANCES_CLOSURE_OF_OXYGEN.md (stoichiometric S_H2O).",
+        help="Write docs/mass_balances/artifacts/audit-oxygen-closure-114cell.md.",
     )
     parser.add_argument(
         "--closure-of-oxygen-and-protons",
         action="store_true",
-        help="Write docs/MASS_BALANCES_CLOSURE_OF_PROTONS.md (19×18 S, audit only).",
+        help="Write docs/mass_balances/artifacts/audit-oxygen-proton-closure-114cell.md.",
     )
     parser.add_argument(
         "--closure",
@@ -370,15 +374,16 @@ def main() -> None:
     if n_closure > 1:
         parser.error("Use at most one of --closure-of-oxygen, --closure-of-oxygen-and-protons, --closure.")
 
+    _ARTIFACTS_DIR.mkdir(parents=True, exist_ok=True)
     if args.closure_of_oxygen or args.closure:
         text = _generate_closure()
-        out = _ROOT / "docs" / "MASS_BALANCES_CLOSURE_OF_OXYGEN.md"
+        out = _ARTIFACTS_DIR / "audit-oxygen-closure-114cell.md"
     elif args.closure_of_oxygen_and_protons:
         text = _generate_closure_oxygen_and_protons()
-        out = _ROOT / "docs" / "MASS_BALANCES_CLOSURE_OF_PROTONS.md"
+        out = _ARTIFACTS_DIR / "audit-oxygen-proton-closure-114cell.md"
     else:
         text = _generate_si()
-        out = _ROOT / "docs" / "MASS_BALANCES.md"
+        out = _ARTIFACTS_DIR / "audit-si-114cell.md"
 
     out.write_text(text, encoding="utf-8")
     print(f"Wrote {out} ({len(text)} bytes)")
