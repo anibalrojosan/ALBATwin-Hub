@@ -36,4 +36,4 @@ The biological rate vector \(\boldsymbol{\rho}\) always has **19** components (s
 
 ## Root-level stubs
 
-For backwards compatibility, short redirect stubs remain at [`docs/MASS_BALANCES.md`](../MASS_BALANCES.md) and the two closure variants; they point into `artifacts/`.
+Index for all three audits (links + regeneration commands): [`docs/MASS_BALANCES.md`](../MASS_BALANCES.md).

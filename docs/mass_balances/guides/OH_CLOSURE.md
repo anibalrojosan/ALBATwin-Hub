@@ -57,6 +57,8 @@ uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen-and-proto
 `get_petersen_matrix_for_simulation(closure_mode="si")` returns the SI matrix by default.
 `closure_mode="oxygen"` selects **19×17** water closure. `closure_mode="oxygen_and_protons"`
 returns **19×18**; pair it with **`StateVector.to_array(variant=OXYGEN_AND_PROTON_CLOSURE)`**
-(length **18**). Legacy: `use_oh_closure=True` is equivalent to `closure_mode="oxygen"`.
+(length **18**). 
+
+Legacy: `use_oh_closure=True` is equivalent to `closure_mode="oxygen"`.
 Before enabling closure in production runs, validate $S_{\mathrm{H2O}}$ / proton bookkeeping
 and consistency with pH / gas–liquid submodels from the ALBA SI.

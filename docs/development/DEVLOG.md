@@ -31,7 +31,7 @@ Following **ADR 007** (policy **(a)**), the twin needs a **clear extension layer
 - **`scripts/generate_mass_balances_md.py`:
     - `--closure-of-oxygen`, `--closure-of-oxygen-and-protons`, `--closure` (alias for oxygen); 
     - Markdown generator supports **17 or 18** columns; 
-    - generated audits under `docs/mass_balances/artifacts/` (`audit-si-114cell.md`, `audit-oxygen-closure-114cell.md`, `audit-oxygen-proton-closure-114cell.md`); stubs remain at `docs/MASS_BALANCES*.md`.
+    - generated audits under `docs/mass_balances/artifacts/` (`audit-si-114cell.md`, `audit-oxygen-closure-114cell.md`, `audit-oxygen-proton-closure-114cell.md`); index at `docs/MASS_BALANCES.md`.
 - **Documentation:** 
     - `docs/mass_balances/guides/stoichiometric_water_rationale.md`, 
     - `docs/mass_balances/guides/proton_closure_rationale.md`, 
