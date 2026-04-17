@@ -246,6 +246,14 @@ $$ f_{pH}(pH) = \frac{(pH - pH_{min})(pH - pH_{max})}{(pH - pH_{min})(pH - pH_{m
 For Algae only. Uses Haldane model (Bernard & Rémond, 2012).
 $$ f_I(I) = \frac{\mu_{max}}{1 + \frac{\mu_{max}}{\alpha} \left(\frac{I}{I_{opt}} - 1\right)^2} $$
 
+**Light factor vs §4 (single $\mu_{max,ALG}$ scale).** The numerator contains $\mu_{max}$, so at optimal irradiance $f_I(I_{opt}) = \mu_{max}$ — this is **not** a dimensionless factor equal to $1$. Section §4 nevertheless writes $\rho_1$ and $\rho_2$ as $\mu_{max,ALG} \cdot f_I \cdot \cdots$. If one substitutes the **same** symbol $f_I$ from the equation above **without** adjustment, the leading specific-rate scale becomes $\mu_{max,ALG}^2$ at $I = I_{opt}$, i.e. $\mu_{max}$ is counted twice.
+
+To keep **one** overall $\mu_{max,ALG}$ in the growth rate while preserving the Haldane shape in $I$, the reference implementation uses an equivalent **dimensionless** response (same algebra, factored form):
+
+$$ f_{I,\mathrm{dim}}(I) = \frac{f_I(I)}{\mu_{max,ALG}} = \frac{1}{1 + \frac{\mu_{max,ALG}}{\alpha} \left(\frac{I}{I_{opt}} - 1\right)^2}, \qquad f_{I,\mathrm{dim}}(I_{opt}) = 1, $$
+
+and evaluates $\rho_1$ and $\rho_2$ with **$\mu_{max,ALG} \, f_{I,\mathrm{dim}}(I)$** wherever §4 shows $\mu_{max,ALG} \, f_I$ and $f_I$ is identified with the §3.3 expression. The process rates $\boldsymbol{\rho}$ are unchanged in meaning; only the split between an overall maximum specific rate and the $I$-dependent multiplier is explicit. (In code: `f_i_haldane` returns $f_I$ as above; algae growth divides by `mu_max_alg` once.)
+
 ### 3.4 Oxygen Inhibition ($f_{DO}$)
 For Algae.
 *   **Growth Inhibition:** 
