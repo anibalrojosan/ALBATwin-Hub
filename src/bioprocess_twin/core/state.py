@@ -116,9 +116,7 @@ class StateVector(BaseModel):
             elif flat.size == 17:
                 variant = StateVectorVariant.SI
             else:
-                raise ValueError(
-                    f"Expected array length 17 or 18 when variant is omitted, got {flat.size}"
-                )
+                raise ValueError(f"Expected array length 17 or 18 when variant is omitted, got {flat.size}")
         n = state_array_len(variant)
         if flat.size != n:
             raise ValueError(f"Expected array length {n} for variant {variant!r}, got {flat.size}")

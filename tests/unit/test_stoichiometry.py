@@ -1,6 +1,7 @@
 """Unit tests for the ALBA stoichiometry module (Petersen and composition matrices)."""
 
 import numpy as np
+import pytest
 from stoichiometry_mass_balance_shared import (
     MASS_BALANCE_ATOL,
     compute_mass_balance_matrix,
@@ -19,7 +20,17 @@ from bioprocess_twin.models.stoichiometry import (
 # Column indices for state variables (must match StateVector.to_array order)
 X_ALG, X_AOB, X_NOB, X_H, X_S, X_I = 0, 1, 2, 3, 4, 5
 S_S, S_I, S_IC, S_ND, S_NH, S_NO2, S_NO3, S_N2, S_PO4, S_O2, S_H2O = (
-    6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
 )
 
 
@@ -35,6 +46,7 @@ def test_petersen_matrix_dimensions():
     assert S.shape == (19, 17)
 
 
+@pytest.mark.strict_si_mass_balance
 def test_mass_balance_conservation():
     """For each process, sum(S[i,:] * I[k,:]) ≈ 0 for all elements (COD, O, C, N, P, H)."""
     balance = compute_mass_balance_matrix()

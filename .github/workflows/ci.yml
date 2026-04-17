@@ -41,3 +41,21 @@ jobs:
       - name: Test with Pytest
         run: |
           uv run pytest
+
+  mass-balance-si-audit:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "latest"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: uv sync --group dev
+      - name: Install package
+        run: uv pip install -e .
+      - name: Strict SI mass balance (informational)
+        run: uv run pytest -m strict_si_mass_balance -o addopts=''

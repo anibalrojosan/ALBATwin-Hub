@@ -383,7 +383,5 @@ def format_closure_inventory_markdown() -> str:
     if not viol:
         lines.append("| — | — | *(no violations)* | |")
     lines.append("")
-    lines.append(
-        "See also `docs/mass_balances/artifacts/audit-si-114cell.md` for the full 114-cell audit."
-    )
+    lines.append("See also `docs/mass_balances/artifacts/audit-si-114cell.md` for the full 114-cell audit.")
     return "\n".join(lines) + "\n"

@@ -178,8 +178,7 @@ def generate_markdown(
             a = abs(r)
             st = "**OK**" if a <= atol else "**FAIL**"
             lines.append(
-                f"Balance for process row $i={i}$ ($\\rho_{{{rho}}}$) and composition row "
-                f"$k={k}$ (**{elem}**):"
+                f"Balance for process row $i={i}$ ($\\rho_{{{rho}}}$) and composition row $k={k}$ (**{elem}**):"
             )
             lines.append("")
             lines.append(r"$$B_{i,k} = \sum_{j} S_{i,j}\, I_{k,j}.$$")
@@ -201,9 +200,7 @@ def generate_markdown(
                 i_kj = float(comp[k, j])
                 prod = s_ij * i_kj
                 terms.append(_fmt_float(prod))
-            lines.append(
-                f"Non-zero contributions ($S_{{i,j}}\\neq 0$), in column order $j = 0\\ldots {j_max}$:"
-            )
+            lines.append(f"Non-zero contributions ($S_{{i,j}}\\neq 0$), in column order $j = 0\\ldots {j_max}$:")
             lines.append("")
             lines.append(r"$$B_{i,k} = " + " + ".join(terms) + r"$$")
             lines.append("")
@@ -214,21 +211,12 @@ def generate_markdown(
                 s_ij = float(S[i, j])
                 i_kj = float(comp[k, j])
                 prod = s_ij * i_kj
-                row = (
-                    f"| {j} | `{state_labels[j]}` | {_fmt_float(s_ij)} | "
-                    f"{_fmt_float(i_kj)} | {_fmt_float(prod)} |"
-                )
+                row = f"| {j} | `{state_labels[j]}` | {_fmt_float(s_ij)} | {_fmt_float(i_kj)} | {_fmt_float(prod)} |"
                 lines.append(row)
             lines.append("")
-            lines.append(
-                f"**Sum:** $B_{{{i},{k}}} \\approx {_fmt_float(r)}$ "
-                f"(check: `numpy.sum` = {_fmt_float(r)})"
-            )
+            lines.append(f"**Sum:** $B_{{{i},{k}}} \\approx {_fmt_float(r)}$ (check: `numpy.sum` = {_fmt_float(r)})")
             lines.append("")
-            lines.append(
-                f"**Status:** {st} — $|B_{{{i},{k}}}| = {_fmt_float(a)}$ "
-                f"{'≤' if a <= atol else '>'} {atol:g}"
-            )
+            lines.append(f"**Status:** {st} — $|B_{{{i},{k}}}| = {_fmt_float(a)}$ {'≤' if a <= atol else '>'} {atol:g}")
             lines.append("")
 
     assert cell_idx == 114, cell_idx
@@ -335,9 +323,7 @@ def _generate_closure_oxygen_and_protons() -> str:
             "Columns **0–16** match `build_petersen_matrix_with_oh_closure()`.",
         ],
         atol=MASS_BALANCE_ATOL,
-        regen_command=(
-            "uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen-and-protons"
-        ),
+        regen_command=("uv run python scripts/generate_mass_balances_md.py --closure-of-oxygen-and-protons"),
         derivation_blurb=(
             "114 cells = 19 processes × 6 composition rows; sums run over **18** columns where "
             "applicable. Matrix ``S`` is **19×18**; ``comp`` is **6×18**."
