@@ -9,10 +9,14 @@ matrix for mass balance validation. Based on Casagli et al. (2021) and ASM conve
 - **Table SI.3.1** (`SI.3 - Table SI.3.1: ALBA model stoichiometric matrix.md`): process
   layout and composition matrix structure. Numeric composition cells here must match
   `get_composition_matrix()` (the repo table is kept aligned with this module).
-- **Table SI.3.2** (`SI.3 - Table SI.3.2: Stoichiometric coefficient values implemented in the ALBA bioprocesses.md`): all stoichiometric *parameters* (yields, i_C, i_N, f_XI, …) used in
+- **Table SI.3.2**
+  (``SI.3 - Table SI.3.2: Stoichiometric coefficient values implemented in the ALBA bioprocesses.md``):
+  all stoichiometric *parameters* (yields, i_C, i_N, f_XI, …) used in
   both the composition matrix and Petersen coefficients. Kinetic parameters from
   other SI tables do **not** appear in **S**; they only scale **ρ** in **dC/dt = Sᵀρ**.
-- **Table SI.3.3** (`SI.3 - Table SI.3.3: Stoichiometric coefficient expressions.md`): closed-form expressions for Petersen entries **α**; implemented in
+- **Table SI.3.3**
+  (``SI.3 - Table SI.3.3: Stoichiometric coefficient expressions.md``):
+  closed-form expressions for Petersen entries **α**; implemented in
   `get_petersen_matrix()`.
 """
 
@@ -250,35 +254,17 @@ def get_composition_matrix() -> np.ndarray:
 
 def _alpha_alg_o2_growth_nh4() -> float:
     """SI.3.3 rho1: S_O2 coefficient for phototrophic growth on NH4+."""
-    return (
-        -I_O_ALG
-        + (32.0 / 12.0) * I_C_ALG
-        - (24.0 / 14.0) * I_N_ALG
-        + (40.0 / 31.0) * I_P_ALG
-        + 8.0 * I_H_ALG
-    )
+    return -I_O_ALG + (32.0 / 12.0) * I_C_ALG - (24.0 / 14.0) * I_N_ALG + (40.0 / 31.0) * I_P_ALG + 8.0 * I_H_ALG
 
 
 def _alpha_alg_o2_growth_no3() -> float:
     """SI.3.3 rho2: S_O2 coefficient for phototrophic growth on NO3-."""
-    return (
-        -I_O_ALG
-        + (32.0 / 12.0) * I_C_ALG
-        + (40.0 / 14.0) * I_N_ALG
-        + (40.0 / 31.0) * I_P_ALG
-        + 8.0 * I_H_ALG
-    )
+    return -I_O_ALG + (32.0 / 12.0) * I_C_ALG + (40.0 / 14.0) * I_N_ALG + (40.0 / 31.0) * I_P_ALG + 8.0 * I_H_ALG
 
 
 def _alpha_alg_o2_respiration() -> float:
     """SI.3.3 rho3: S_O2 coefficient for algal aerobic respiration."""
-    return (
-        + I_O_ALG
-        - (32.0 / 12.0) * I_C_ALG
-        + (24.0 / 14.0) * I_N_ALG
-        - (40.0 / 31.0) * I_P_ALG
-        - 8.0 * I_H_ALG
-    )
+    return +I_O_ALG - (32.0 / 12.0) * I_C_ALG + (24.0 / 14.0) * I_N_ALG - (40.0 / 31.0) * I_P_ALG - 8.0 * I_H_ALG
 
 
 def get_petersen_matrix() -> np.ndarray:
@@ -403,7 +389,7 @@ def get_petersen_matrix() -> np.ndarray:
     # --- rho14: Aerobic growth of X_AOB on NH4+ ---
     S[13, X_AOB] = 1
     S[13, S_IC] = -I_C_BM
-    S[13, S_NH] = -I_N_BM - (1 / Y_AOB) 
+    S[13, S_NH] = -I_N_BM - (1 / Y_AOB)
     S[13, S_NO2] = 1 / Y_AOB
     S[13, S_PO4] = -I_P_BM
     S[13, S_O2] = 1 - (48.0 / 14.0) / Y_AOB
