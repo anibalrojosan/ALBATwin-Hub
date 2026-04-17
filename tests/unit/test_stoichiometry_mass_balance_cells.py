@@ -27,6 +27,7 @@ def test_mass_balance_print_all_cell_residuals(mass_balance_matrix: np.ndarray) 
     print("\n" + format_mass_balance_all_cells(mass_balance_matrix, MASS_BALANCE_ATOL))
 
 
+@pytest.mark.strict_si_mass_balance
 @pytest.mark.parametrize("element_idx", range(6), ids=ELEMENT_NAMES)
 @pytest.mark.parametrize("process_idx", range(19), ids=[f"rho{r + 1}" for r in range(19)])
 def test_mass_balance_each_process_element(

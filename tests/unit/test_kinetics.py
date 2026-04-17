@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from bioprocess_twin.core.state import StateVector
 from bioprocess_twin.models import EnvConditions, calculate_rates, default_alba
-from bioprocess_twin.models.stoichiometry import N_PROCESSES
+from bioprocess_twin.models.stoichiometry import N_PROCESSES, N_STATE
 
 
 def _state_kwargs_17(**overrides: float) -> dict[str, float]:
@@ -49,8 +49,11 @@ def test_calculate_rates_shape_and_dtype() -> None:
 
     assert isinstance(rho, np.ndarray)
     assert rho.shape == (N_PROCESSES,)
+    assert N_PROCESSES == 19
     assert rho.dtype == np.float64
     assert not np.any(np.isnan(rho))
+    # rho[k] is process ρ_{k+1} (row k of Petersen); see calculate_rates docstring.
+    assert len(rho) == 19
 
 
 def test_calculate_rates_ndarray_17_and_18_slice() -> None:
@@ -160,6 +163,60 @@ def test_rho11_increases_when_x_s_doubles_at_fixed_x_h() -> None:
     r_lo = calculate_rates(StateVector(**base), env, kinetic_parameters=p)[10]
     r_hi = calculate_rates(StateVector(**{**base, "X_S": 20.0}), env, kinetic_parameters=p)[10]
     assert r_hi > r_lo
+
+
+def test_ndarray_clips_negative_s_o2_for_hill() -> None:
+    """Raw ndarray: negative S_O2 is clipped to 0 so f_DO Hill does not raise."""
+    env = EnvConditions(temperature_C=20.0, pH=7.0, irradiance_umol_m2_s=100.0)
+    v = np.array([1.0] * N_STATE, dtype=np.float64)
+    v[15] = -1.0  # S_O2 column index in SI layout
+    rho = calculate_rates(v, env)
+    assert rho.shape == (N_PROCESSES,)
+    assert not np.any(np.isnan(rho))
+
+
+def test_rho1_zero_when_temperature_below_algal_cardinal_min() -> None:
+    p = default_alba()
+    env = EnvConditions(
+        temperature_C=p.cardinal_temp_alg.t_min - 5.0,
+        pH=p.cardinal_ph_alg.ph_opt,
+        irradiance_umol_m2_s=p.i_opt,
+    )
+    kwargs = _state_kwargs_17(S_IC=1e6, S_NH=1e6, S_PO4=1e6, S_O2=0.0)
+    rho = calculate_rates(StateVector(**kwargs), env, kinetic_parameters=p)
+    assert rho[0] == pytest.approx(0.0, abs=1e-12)
+
+
+def test_rho3_algal_respiration_hand_calc_half_monod() -> None:
+    """ρ₃ at T_opt, pH_opt: only S_O2/(K_O+S_O2) varies; pick S_O2 = K_O for 0.5 Monod."""
+    p = default_alba()
+    env = _env_plateau_algae()
+    s_o2 = p.k_o_alg
+    kwargs = _state_kwargs_17(S_O2=s_o2)
+    rho = calculate_rates(StateVector(**kwargs), env, kinetic_parameters=p)
+    m_o2 = s_o2 / (p.k_o_alg + s_o2)
+    expected = p.b_max_r_alg * m_o2 * kwargs["X_ALG"]
+    assert rho[2] == pytest.approx(expected, rel=1e-6, abs=1e-9)
+
+
+def test_rho14_aob_growth_hand_calc_ammonia_limited() -> None:
+    p = default_alba()
+    env = EnvConditions(
+        temperature_C=p.cardinal_temp_aob.t_opt,
+        pH=p.cardinal_ph_aob.ph_opt,
+        irradiance_umol_m2_s=0.0,
+    )
+    s_nh = 0.05
+    kwargs = _state_kwargs_17(
+        S_NH=s_nh,
+        S_O2=1e3,
+        S_IC=1e3,
+        S_PO4=1e3,
+    )
+    rho = calculate_rates(StateVector(**kwargs), env, kinetic_parameters=p)
+    m_nh = s_nh / (p.k_n_aob + s_nh)
+    expected = p.mu_max_aob * m_nh * kwargs["X_AOB"]
+    assert rho[13] == pytest.approx(expected, rel=1e-6, abs=1e-9)
 
 
 def test_mu_max_h_scales_rho5_linearly() -> None:

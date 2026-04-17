@@ -5,7 +5,6 @@ from __future__ import annotations
 import numpy as np
 
 from bioprocess_twin.models.stoichiometry import get_composition_matrix, get_petersen_matrix
-from bioprocess_twin.stoichiometry_validation import MASS_BALANCE_ATOL
 
 ELEMENT_NAMES = ["COD", "O", "C", "N", "P", "H"]
 

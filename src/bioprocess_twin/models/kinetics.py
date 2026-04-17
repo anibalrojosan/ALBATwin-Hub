@@ -93,12 +93,17 @@ def calculate_rates(
     ndarray uses only ``state[:17]`` (proton closure is ignored for ρ).
 
     Args:
-        state: ``(17,)`` or ``(18,)`` concentrations, or ``StateVector``.
+        state: ``(17,)`` or ``(18,)`` concentrations, or ``StateVector``. Expected
+            nonnegative concentrations (``StateVector`` enforces this). Raw ``ndarray``
+            inputs are clipped to **≥ 0** element-wise so Monod/Hill terms stay defined
+            (e.g. negative ``S_O2`` would raise in Hill).
         env_conditions: Temperature, pH, irradiance.
         kinetic_parameters: Defaults to ``default_alba()`` when omitted.
 
     Returns:
-        ``ndarray`` shape ``(19,)``, ``dtype`` float64.
+        ``ndarray`` of shape ``(19,)``, ``dtype`` float64. Index ``i`` is process
+        **ρ_{i+1}** (row ``i`` of ``get_petersen_matrix()``): ``out[0]`` = ρ₁, …,
+        ``out[18]`` = ρ₁₉.
 
     Raises:
         ValueError: If ``state`` array size is not 17 or 18.
@@ -111,9 +116,9 @@ def calculate_rates(
         flat = np.asarray(state, dtype=np.float64).ravel()
         n = flat.size
         if n == N_STATE:
-            conc = flat
+            conc = np.maximum(flat.copy(), 0.0)
         elif n == N_STATE + 1:
-            conc = flat[:N_STATE]
+            conc = np.maximum(flat[:N_STATE].copy(), 0.0)
         else:
             raise ValueError(f"state as ndarray must have length {N_STATE} or {N_STATE + 1} (proton layout), got {n}")
 
