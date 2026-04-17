@@ -108,6 +108,7 @@ Uncertainty (±) is included when reported in SI.5. **Source** abbreviations fol
 | $K_{NO3,H}$ | 0.5 | $gN \cdot m^{-3}$ | Nitrate half-saturation for anoxic $X_H$ | Reichert, 2001 |
 | $K_{P,H}$ | 0.01 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_H$ | Henze, 2000 |
 | $K_{HYD}$ | 1 | $gCOD \cdot gCOD^{-1}$ | Half-saturation ratio for hydrolysis ($X_S/X_H$) | Reichert, 2001 |
+| $K_a$ | 1.0 | $gN \cdot m^{-3}$ | Half-saturation for urea / $S_{ND}$ in $\rho_{12}$ (≈ 1 mg N L⁻¹) | Henze et al., 2000 (nominal; not in Casagli SI.5) |
 | $\eta_{ANOX}$ | 0.6 | — | Anoxic growth reduction factor | De Kreuk, 2006 |
 | **AOB** | | | | |
 | $K_{C,AOB}$ | 0.5 | $gC \cdot m^{-3}$ | Inorganic carbon half-saturation for $X_{AOB}$ | Henze, 2000 |
@@ -115,6 +116,7 @@ Uncertainty (±) is included when reported in SI.5. **Source** abbreviations fol
 | $K_{N,AOB}$ | 0.5 | $gN \cdot m^{-3}$ | Ammonium half-saturation for $X_{AOB}$ | Reichert, 2001 |
 | $K_{P,AOB}$ | 0.01 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_{AOB}$ | Henze, 2000 |
 | **NOB** | | | | |
+| $K_{C,NOB}$ | 0.5 | $gC \cdot m^{-3}$ | Inorganic carbon half-saturation for $X_{NOB}$ | Henze, 2000 |
 | $K_{O,NOB}$ | 2.2 | $gO_2 \cdot m^{-3}$ | Oxygen half-saturation for $X_{NOB}$ | Wiesmann, 1994 |
 | $K_{NO2,NOB}$ | 0.5 | $gN \cdot m^{-3}$ | Nitrite half-saturation for $X_{NOB}$ | Reichert, 2001 |
 | $K_{P,NOB}$ | 0.01 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_{NOB}$ | Henze, 2000 |
