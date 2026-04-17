@@ -8,11 +8,25 @@ This document serves as the technical specification for the ALBA (Algae-Bacteria
 
 ## Table of contents
 - [1. Model Constants & Parameters](#1-model-constants--parameters)
+  - [1.1 Stoichiometric Parameters](#11-stoichiometric-parameters)
+  - [1.2 Kinetic & environmental parameters (SI.5)](#12-kinetic--environmental-parameters-si5)
+    - [1.2.1 Specific rates](#121-specific-rates)
+    - [1.2.2 Half-saturation, inhibition, light](#122-half-saturation-inhibition-light)
+    - [1.2.3 Temperature coefficients](#123-temperature-coefficients)
+    - [1.2.4 Cardinal temperatures (growth)](#124-cardinal-temperatures-growth)
+    - [1.2.5 Cardinal pH (growth)](#125-cardinal-ph-growth)
+    - [1.2.6 Gas–liquid exchange (atmosphere)](#126-gasliquid-exchange-atmosphere)
+    - [1.2.7 pH sub-model reference (pK_a)](#127-ph-sub-model-reference-pka)
 - [2. State Vector Definition](#2-state-vector-definition)
   - [2.1 Digital twin: state and Petersen layouts](#21-digital-twin-state-and-petersen-layouts)
 - [3. Algebraic Sub-models](#3-algebraic-sub-models)
 - [4. Process Rate Equations](#4-process-rate-equations)
-- [5. Stoichiometric Matrix Construction Rules](#5-stoichiometric-matrix-construction-rules)
+- [5. Petersen matrix in this repository](#5-petersen-matrix-in-this-repository)
+    - [5.1 Dimensions and ODE layout](#51-dimensions-and-ode-layout)
+    - [5.2 Scope of `get_petersen_matrix()`](#52-scope-of-get_petersen_matrix)
+    - [5.3 Where coefficients come from](#53-where-coefficients-come-from)
+    - [5.4 Example: process 1 (ρ₁), phototrophic growth on ammonium](#54-example-process-1-ρ₁-phototrophic-growth-on-ammonium)
+    - [5.5 “Oxygen vs yield”: when a short formula is enough](#55-oxygen-vs-yield-when-a-short-formula-is-enough)
 
 ## 1. Model Constants & Parameters
 
@@ -42,40 +56,138 @@ Values defining the elemental composition of biomass and substrates.
 | $f_{XI}$ | 0.1 | $gCOD_{XI} \cdot gCOD_{BM}^{-1}$ | Inert fraction from Bacteria decay |
 | $f_{SI}$ | 0.1 | $gCOD_{SI} \cdot gCOD_{BM}^{-1}$ | Soluble inert fraction from hydrolysis |
 
-### 1.2 Kinetic Parameters
-Values governing the speed of biological reactions.
+### 1.2 Kinetic & environmental parameters (SI.5)
 
-| Symbol | Value | Unit | Description |
+Numeric **kinetic**, **cardinal** (temperature, pH), and **auxiliary** defaults for light extinction, gas–liquid transfer, and pH speciation are transcribed from **Table SI.5.1** and the companion tables in Casagli et al. (2021) supplementary **SI.5**. Symbols match §3–§4; where the paper uses different subscripts (e.g. `μ_max,g,ALG`), this document uses $\mu_{max,ALG}$; the SI symbol α for the initial slope of the PI curve is $\alpha_{light}$ here.
+
+Uncertainty (±) is included when reported in SI.5. **Source** abbreviations follow the SI bibliography; “This study” refers to Casagli et al. (2021).
+
+#### 1.2.1 Specific rates
+
+| Symbol | Value | Unit | Description | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| **Algae** | | | | |
+| $\mu_{max,ALG}$ | 2.5 ± 0.055 | $d^{-1}$ | Maximum specific growth rate of $X_{ALG}$ | This study |
+| $b_{max,r,ALG}$ | 0.1 | $d^{-1}$ | Specific respiration rate of $X_{ALG}$ | This study |
+| $b_{max,d,ALG}$ | 0.03 | $d^{-1}$ | Specific decay rate of $X_{ALG}$ | Arashiro, 2017 |
+| **Heterotrophs** | | | | |
+| $\mu_{max,H}$ | 6 | $d^{-1}$ | Maximum specific growth rate of $X_H$ | Henze, 2000 |
+| $b_{max,r,H}$ | 0.3 | $d^{-1}$ | Specific aerobic respiration rate of $X_H$ | Reichert, 2001 |
+| $b_{max,d,H}$ | 0.9 | $d^{-1}$ | Specific decay rate of $X_H$ | This study |
+| $\mu_{Hyd}$ | 3 | $d^{-1}$ | Hydrolysis rate of slowly biodegradable COD ($X_S$) | Arashiro, 2017 |
+| $\mu_a$ | 0.25 | $d^{-1}$ | Hydrolysis / ammonification rate of urea ($S_{ND}$) | This study |
+| **AOB** | | | | |
+| $\mu_{max,AOB}$ | 0.72 ± 0.0005 | $d^{-1}$ | Maximum specific aerobic growth rate of $X_{AOB}$ | This study |
+| $b_{max,r,AOB}$ | 0.05 | $d^{-1}$ | Specific aerobic respiration rate of $X_{AOB}$ | Arashiro, 2017 |
+| $b_{max,d,AOB}$ | 0.1 | $d^{-1}$ | Specific decay rate of $X_{AOB}$ | Solimeno, 2017 |
+| **NOB** | | | | |
+| $\mu_{max,NOB}$ | 0.65 ± 0.023 | $d^{-1}$ | Maximum specific aerobic growth rate of $X_{NOB}$ | This study |
+| $b_{max,r,NOB}$ | 0.03 | $d^{-1}$ | Specific aerobic respiration rate of $X_{NOB}$ | Reichert, 2001 |
+| $b_{max,d,NOB}$ | 0.08 | $d^{-1}$ | Specific decay rate of $X_{NOB}$ | This study |
+
+#### 1.2.2 Half-saturation, inhibition, light
+
+| Symbol | Value | Unit | Description | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| **Algae** | | | | |
+| $K_{C,ALG}$ | 0.004 | $gC \cdot m^{-3}$ | Inorganic carbon half-saturation for $X_{ALG}$ | Solimeno, 2017 |
+| $K_{O,ALG}$ | 0.2 | $gO_2 \cdot m^{-3}$ | Oxygen half-saturation for $X_{ALG}$ | Reichert, 2001 |
+| $K_{N,ALG}$ | 0.1 | $gN \cdot m^{-3}$ | Ammoniacal N half-saturation for $X_{ALG}$ | Solimeno, 2017 |
+| $K_{NO3,ALG}$ | 0.3 | $gN \cdot m^{-3}$ | Nitrate half-saturation for $X_{ALG}$ | Decostere, 2016 |
+| $K_{P,ALG}$ | 0.02 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_{ALG}$ | Decostere, 2016 |
+| $EC_{50,O2}$ | 20 | $gO_2 \cdot m^{-3}$ | Dissolved O₂ at 50 % algal growth reduction (Hill) | This study |
+| $n$ | 15 | — | Hill shape parameter for O₂ inhibition / enhancement | This study |
+| $I_{opt}$ | 300 ± 3.814 | $\mu mol \cdot m^{-2} \cdot s^{-1}$ | Optimal irradiance for $X_{ALG}$ | Martinez, 2018 |
+| $\alpha_{light}$ | 0.01 ± 0.0003 | $\mu mol^{-1} \cdot m^2 \cdot s$ | Initial slope of irradiance response (§3.3) | This study |
+| $\varepsilon$ | 0.067 | $m^2 \cdot gCOD^{-1}$ | Light extinction coefficient | This study |
+| **Heterotrophs** | | | | |
+| $K_{S,H}$ | 4 | $gCOD \cdot m^{-3}$ | Readily biodegradable substrate half-saturation | Jubany, 2007 |
+| $K_{O,H}$ | 0.2 | $gO_2 \cdot m^{-3}$ | Oxygen half-saturation for $X_H$ | Henze, 2000 |
+| $K_{N,H}$ | 0.05 | $gN \cdot m^{-3}$ | Ammonium half-saturation for $X_H$ | Henze, 2000 |
+| $K_{NO2,H}$ | 0.2 | $gN \cdot m^{-3}$ | Nitrite half-saturation for anoxic $X_H$ | Reichert, 2001 |
+| $K_{NO3,H}$ | 0.5 | $gN \cdot m^{-3}$ | Nitrate half-saturation for anoxic $X_H$ | Reichert, 2001 |
+| $K_{P,H}$ | 0.01 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_H$ | Henze, 2000 |
+| $K_{HYD}$ | 1 | $gCOD \cdot gCOD^{-1}$ | Half-saturation ratio for hydrolysis ($X_S/X_H$) | Reichert, 2001 |
+| $\eta_{ANOX}$ | 0.6 | — | Anoxic growth reduction factor | De Kreuk, 2006 |
+| **AOB** | | | | |
+| $K_{C,AOB}$ | 0.5 | $gC \cdot m^{-3}$ | Inorganic carbon half-saturation for $X_{AOB}$ | Henze, 2000 |
+| $K_{O,AOB}$ | 0.8 | $gO_2 \cdot m^{-3}$ | Oxygen half-saturation for $X_{AOB}$ | Henze, 2000 |
+| $K_{N,AOB}$ | 0.5 | $gN \cdot m^{-3}$ | Ammonium half-saturation for $X_{AOB}$ | Reichert, 2001 |
+| $K_{P,AOB}$ | 0.01 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_{AOB}$ | Henze, 2000 |
+| **NOB** | | | | |
+| $K_{O,NOB}$ | 2.2 | $gO_2 \cdot m^{-3}$ | Oxygen half-saturation for $X_{NOB}$ | Wiesmann, 1994 |
+| $K_{NO2,NOB}$ | 0.5 | $gN \cdot m^{-3}$ | Nitrite half-saturation for $X_{NOB}$ | Reichert, 2001 |
+| $K_{P,NOB}$ | 0.01 | $gP \cdot m^{-3}$ | Phosphorus half-saturation for $X_{NOB}$ | Henze, 2000 |
+
+#### 1.2.3 Temperature coefficients
+
+Used in $\theta^{(T-20)}$-style corrections where §3–§4 apply (decay, hydrolysis, ammonification, gas-transfer scaling in SI.7). The first row ($\theta$ = 1.024) is the factor cited for $k_La$ temperature correction in SI.5 / SI.7.
+
+| Symbol | Value | Unit | Description | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| $\theta$ | 1.024 | — | Base for $k_La$ (and related) temperature correction | Ginot et Hervé, 1994 |
+| $\theta_H$ | 1.07 | — | Temperature coefficient for $X_H$ decay | Henze, 2000 |
+| $\theta_{AOB}$ | 1.1 | — | Temperature coefficient for $X_{AOB}$ decay | Metcalf & Eddy |
+| $\theta_{NOB}$ | 1.04 | — | Temperature coefficient for $X_{NOB}$ decay | Metcalf & Eddy |
+| $\theta_{ALG}$ | 1.04 | — | Temperature coefficient for $X_{ALG}$ decay | Reichert, 2001 |
+| $\theta_{HYD}$ | 1.04 ± 0.005 | — | Temperature coefficient for hydrolysis | This study |
+| $\theta_{AMM}$ | 1.12 ± 0.002 | — | Temperature coefficient for ammonification | This study |
+
+#### 1.2.4 Cardinal temperatures (growth)
+
+Used in $f_T$ for growth (CTMI, §3.1). Uncertainties from SI.5 calibration.
+
+| Group | $T_{min}$ | $T_{opt}$ | $T_{max}$ | Unit |
+| :--- | :--- | :--- | :--- | :--- |
+| $X_{ALG}$ | −10 ± 1.524 | 20 ± 0.148 | 42 ± 0.513 | °C |
+| $X_{AOB}$ | −8 ± 0.741 | 24.5 ± 0.232 | 40 ± 0.817 | °C |
+| $X_{NOB}$ | −8 ± 9.734 | 20 ± 0.940 | 38.5 ± 6.090 | °C |
+| $X_H$ | −3 ± 0.335 | 25 ± 0.634 | 42 ± 1.919 | °C |
+
+#### 1.2.5 Cardinal pH (growth)
+
+Used in $f_{pH}$ (CPM, §3.2).
+
+| Group | $pH_{min}$ | $pH_{opt}$ | $pH_{max}$ |
 | :--- | :--- | :--- | :--- |
-| **Algae ($X_{ALG}$)** | | | |
-| $\mu_{max,ALG}$ | 2.5 ± 0.055 | $d^{-1}$ | Max growth rate |
-| $b_{max,r,ALG}$ | 0.1 | $d^{-1}$ | Respiration rate |
-| $b_{max,d,ALG}$ | 0.03 | $d^{-1}$ | Decay rate |
-| $K_{N,ALG}$ | 0.1 | $gN \cdot m^{-3}$ | Half-sat Ammonium |
-| $K_{NO3,ALG}$ | 0.3 | $gN \cdot m^{-3}$ | Half-sat Nitrate |
-| $K_{P,ALG}$ | 0.02 | $gP \cdot m^{-3}$ | Half-sat Phosphorus |
-| $K_{C,ALG}$ | 0.004 | $gC \cdot m^{-3}$ | Half-sat Inorganic Carbon |
-| $K_{O,ALG}$ | 0.2 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen (Respiration) |
-| $EC_{50,O2}$ | 20 | $gO_2 \cdot m^{-3}$ | Oxygen inhibition constant ($k_{DO}$) |
-| $n$ | 15 | - | Hill coefficient for O2 inhibition |
-| $I_{opt}$ | 300 ± 3.8 | $\mu mol \cdot m^{-2} \cdot s^{-1}$ | Optimal Irradiance |
-| $\alpha_{light}$ | 0.01 | $\mu mol^{-1} \cdot m^2 \cdot s$ | Initial slope of PI curve |
-| **Heterotrophs ($X_H$)** | | | |
-| $\mu_{max,H}$ | 6.0 | $d^{-1}$ | Max growth rate |
-| $b_{max,r,H}$ | 0.3 | $d^{-1}$ | Respiration rate |
-| $b_{max,d,H}$ | 0.9 | $d^{-1}$ | Decay rate |
-| $K_{S,H}$ | 4.0 | $gCOD \cdot m^{-3}$ | Half-sat Organic Substrate |
-| $K_{O,H}$ | 0.2 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen |
-| $K_{N,H}$ | 0.05 | $gN \cdot m^{-3}$ | Half-sat Ammonium |
-| $K_{P,H}$ | 0.01 | $gP \cdot m^{-3}$ | Half-sat Phosphorus |
-| $\eta_{ANOX}$ | 0.6 | - | Anoxic reduction factor |
-| **Nitrifiers ($X_{AOB}, X_{NOB}$)** | | | |
-| $\mu_{max,AOB}$ | 0.72 ± 0.0005 | $d^{-1}$ | Max growth rate AOB |
-| $\mu_{max,NOB}$ | 0.65 ± 0.023 | $d^{-1}$ | Max growth rate NOB |
-| $K_{N,AOB}$ | 0.5 | $gN \cdot m^{-3}$ | Half-sat Ammonium (AOB) |
-| $K_{NO2,NOB}$ | 0.5 | $gN \cdot m^{-3}$ | Half-sat Nitrite (NOB) |
-| $K_{O,AOB}$ | 0.8 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen (AOB) |
-| $K_{O,NOB}$ | 2.2 | $gO_2 \cdot m^{-3}$ | Half-sat Oxygen (NOB) |
+| $X_{ALG}$ | 2 ± 0.562 | 8.4 ± 0.066 | 12 ± 0.039 |
+| $X_{AOB}$ | 5.8 ± 0.355 | 8.1 ± 0.078 | 12.4 ± 0.115 |
+| $X_{NOB}$ | 5 ± 0.568 | 7.9 ± 0.320 | 12.1 ± 0.463 |
+| $X_H$ | 2 ± 0.344 | 7 ± 0.066 | 11.5 ± 0.022 |
+
+#### 1.2.6 Gas–liquid exchange (atmosphere)
+
+Defaults for process rates $\rho_{20}$–$\rho_{22}$ (SI.7); not part of `get_petersen_matrix()` until the gas-transfer workstream lands. Henry’s laws: explicit formulas in [`SI.7 Gas-liquid mass transfer.md`](supporting_informations/SI.7%20Gas-liquid%20mass%20transfer.md) (SI.7.3–SI.7.5); SI.5 cites equation tags that refer to that section.
+
+| Symbol | Value | Unit | Description | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| $k_La$ | 34 ± 0.1 | $d^{-1}$ | Volumetric mass-transfer coefficient (O₂ reference) | This study |
+| $H_{O2}$ | see SI.7.3 | $gO_2 \cdot m^{-3} \cdot atm^{-1}$ | Henry constant for O₂ vs temperature | Sander, 2015 |
+| $H_{CO2}$ | see SI.7.4 | $gC\text{-}CO_2 \cdot m^{-3} \cdot atm^{-1}$ | Henry constant for CO₂ vs temperature | Sander, 2015 |
+| $H_{NH3}$ | see SI.7.5 | $gN\text{-}NH_3 \cdot m^{-3} \cdot atm^{-1}$ | Henry constant for NH₃ vs temperature | Sander, 2015 |
+| $D_{O2}$ | 2.5×10⁻⁹ | $m^2 \cdot s^{-1}$ | Diffusivity of O₂ in water | Perry, 2007 |
+| $D_{CO2}$ | 2.1×10⁻⁹ | $m^2 \cdot s^{-1}$ | Diffusivity of CO₂ in water | Perry, 2007 |
+| $D_{NH3}$ | 2.4×10⁻⁹ | $m^2 \cdot s^{-1}$ | Diffusivity of NH₃ in water | Perry, 2007 |
+| $p_{O2}$ | 0.21 | atm | Gas-phase partial pressure of O₂ | This study |
+| $p_{CO2}$ | 0.0004 | atm | Gas-phase partial pressure of CO₂ | This study |
+| $p_{NH3}$ | 1.5×10⁻⁶ | atm | Gas-phase partial pressure of NH₃ | This study |
+
+#### 1.2.7 pH sub-model reference (pK_a)
+
+Reference **pK_a** values at calibration conditions (SI.5); full speciation and **K_a(T)** are in [`SI.6 Explicit chemical equilibria….md`](supporting_informations/SI.6%20Explicit%20chemical%20equilibria%2C%20their%20dissociation%20constants%20with%20temperature%20dependence.md). Descriptions follow the acid–base pair (SI.5 table row labels in the PDF mix species names across rows).
+
+| Symbol | Value | Unit | Description | Source |
+| :--- | :--- | :--- | :--- | :--- |
+| $pK_{a,\mathrm{CO_2}}$ | 6.37 | — | CO₂(aq) / HCO₃⁻ (first dissociation) | Batstone, 2002 |
+| $pK_{a,\mathrm{HCO_3}}$ | 10.33 | — | HCO₃⁻ / CO₃²⁻ | Batstone, 2002 |
+| $pK_{a,\mathrm{NH_4}}$ | 9.25 | — | NH₄⁺ / NH₃ | Batstone, 2002 |
+| $pK_{a,\mathrm{HNO_2}}$ | 3.35 | — | HNO₂ / NO₂⁻ | Batstone, 2002 |
+| $pK_{a,\mathrm{HNO_3}}$ | −1.64 | — | HNO₃ / NO₃⁻ | Batstone, 2002 |
+| $pK_{a,\mathrm{H_3PO_4}}$ | 2.14 | — | H₃PO₄ / H₂PO₄⁻ | Batstone, 2002 |
+| $pK_{a,\mathrm{H_2PO_4}}$ | 7.21 | — | H₂PO₄⁻ / HPO₄²⁻ | Batstone, 2002 |
+| $pK_{a,\mathrm{HPO_4}}$ | 12.67 | — | HPO₄²⁻ / PO₄³⁻ | Batstone, 2002 |
+
+Calibration strategy and parameter uncertainty are documented in SI.8 and SI.9 of the supplementary material.
 
 ---
 
@@ -112,7 +224,7 @@ The published ALBA state list above is the **17-component Casagli SI** basis. Th
 | O closed via $S_{\mathrm{H2O}}$ | `oxygen` | 17 | 19 × 17 |
 | O + H (proton inventory) | `oxygen_and_protons` | 18 | 19 × 18 |
 
-The **18th** component is **`S_{H\_PROTON}`** (g H·m⁻³, free-proton pool), appended after $S_{\mathrm{H2O}}$ in the ODE array. Pair **`get_petersen_matrix_for_simulation(closure_mode=...)`** with **`StateVector.to_array(variant=...)`** so $\mathrm{d}\mathbf{C}/\mathrm{d}t$ and $\mathbf{S}$ share the same **n**. The process rate vector $\boldsymbol{\rho}$ remains **$\mathbb{R}^{19}$** in all layouts.
+The **18th** component is $S_{H\_PROTON}$ (g H·m⁻³, free-proton pool), appended after $S_{\mathrm{H2O}}$ in the ODE array. Pair `get_petersen_matrix_for_simulation(closure_mode=...)` with `StateVector.to_array(variant=...)` so $\mathrm{d}\mathbf{C}/\mathrm{d}t$ and $\mathbf{S}$ share the same $n$. The process rate vector $\boldsymbol{\rho}$ remains **$\mathbb{R}^{19}$** in all layouts.
 
 ---
 
@@ -134,8 +246,10 @@ $$ f_I(I) = \frac{\mu_{max}}{1 + \frac{\mu_{max}}{\alpha} \left(\frac{I}{I_{opt}
 
 ### 3.4 Oxygen Inhibition ($f_{DO}$)
 For Algae.
-*   **Growth Inhibition:** $f_{DO,g} = \frac{EC_{50,O2}^n}{S_{O2}^n + EC_{50,O2}^n}$
-*   **Decay Enhancement:** $f_{DO,d} = \frac{S_{O2}^n}{S_{O2}^n + EC_{50,O2}^n}$
+*   **Growth Inhibition:** 
+   $$f_{DO,g} = \frac{EC_{50,O2}^n}{S_{O2}^n + EC_{50,O2}^n}$$
+*   **Decay Enhancement:** 
+   $$f_{DO,d} = \frac{S_{O2}^n}{S_{O2}^n + EC_{50,O2}^n}$$
 
 ---
 
@@ -190,24 +304,56 @@ The system defines 19 biological processes using **Liebig's Law of the Minimum**
 
 ---
 
-## 5. Stoichiometric Matrix Construction Rules
+## 5. Petersen matrix in this repository
 
-The biological Petersen matrix $\mathbf{S}$ used in $\mathrm{d}\mathbf{C}/\mathrm{d}t = \mathbf{S}^T \boldsymbol{\rho}$ has **19 process rows**. In the **SI** layout it has **17 columns** (the state variables in §2). With **proton closure**, an **18th** column **`S_{H\_PROTON}`** extends $\mathbf{S}$ and $\mathbf{I}$ for elemental H auditing; see §2.1 and [STOICHIOMETRY.md](STOICHIOMETRY.md).
+This section states **what** the implementation’s Petersen matrix is, **what is out of scope**, and how a **worked row** relates to the shorthand oxygen–yield formulas used in textbook ASM. Full numeric tables and closure policies are in [STOICHIOMETRY.md](STOICHIOMETRY.md) and in `get_petersen_matrix()` / `get_petersen_matrix_for_simulation()`.
 
-Full SI diagrams may list additional **equilibrium / gas-transfer** rows (e.g. dissolution of O₂, CO₂, NH₃). Those rows are **not** part of `get_petersen_matrix()` today; they are planned with the hydrochemistry / gas-transfer workstream.
+### 5.1 Dimensions and ODE layout
 
-Coefficients $\alpha_{i,j}$ are derived from mass and COD conventions documented in the supplementary material and [STOICHIOMETRY.md](STOICHIOMETRY.md).
+The biological Petersen matrix **S** appears in
 
-**Example Rule (Algal Growth on $NH_4$, $\rho_1$):**
-*   $X_{ALG}$ (Production): $+1$
-*   $S_{NH}$ (Consumption): $-i_{N,BM,ALG}$
-*   $S_{PO4}$ (Consumption): $-i_{P,BM,ALG}$
-*   $S_{IC}$ (Consumption): $-i_{C,BM,ALG}$
-*   $S_{O2}$ (Production): $+ \frac{32}{12}i_{C,BM} + \frac{24}{14}i_{N,BM} + \frac{40}{31}i_{P,BM} + 8i_{H,BM} - i_{O,BM}$
+$$
+\frac{\mathrm{d}\mathbf{C}}{\mathrm{d}t} = \mathbf{S}^\top \boldsymbol{\rho}.
+$$
 
-**General Logic:**
-For any growth process, the coefficient for $S_{O2}$ is derived from the COD balance:
-$$ \alpha_{O2} = 1 - Y_{biomass} $$
-(Adjusted for units of $gO_2$ vs $gCOD$).
+**S** has **19 rows** (biological processes; rates ρ₁ … ρ₁₉ in §4). Column count matches the state layout (§2.1): **17 columns** on the Casagli SI basis, or **18 columns** when the optional proton inventory **S_H_PROTON** is appended for elemental H auditing. The rate vector **ρ** is always **19-dimensional**; closure modes change **S**, not the definition of **ρ**.
+
+### 5.2 Scope of `get_petersen_matrix()`
+
+Some **full** ALBA diagrams add extra rows for **gas–liquid transfer or equilibrium** (e.g. dissolution of O₂, CO₂, NH₃). Those rows are **not** in `get_petersen_matrix()` yet; they belong to the hydrochemistry / gas-transfer workstream. Do not expect a one-to-one match between every auxiliary row in the SI diagram and this 19-row matrix.
+
+### 5.3 Where coefficients come from
+
+Each Petersen entry (row **i**, column **j**) follows the mass and COD conventions of Casagli et al. (2021), in particular **Table SI.3.3** (closed forms for many entries). The repo transcribes that table in code; **do not** infer a single universal formula for “the” oxygen column from a short mnemonic. Different processes use different normalizations (phototrophy vs heterotrophy, aerobic vs anoxic, etc.).
+
+### 5.4 Example: process 1 (ρ₁), phototrophic growth on ammonium
+
+Illustrative non-zero entries on species consumed or produced (signs and factors per SI.3.3; biomass fractions as in §1.1):
+
+- **X_ALG:** +1 (production of algal biomass per unit process rate).
+- **S_IC, S_NH, S_PO4:** consumption with stoichiometry $i_{C,BM,ALG}$, $i_{N,BM,ALG}$, and $i_{P,BM,ALG}$ (in code: **I_C_ALG**, **I_N_ALG**, **I_P_ALG**).
+- **S_O2:** SI.3.3 gives a closed form from elemental composition and the model’s O₂/COD convention (implemented as `_alpha_alg_o2_growth_nh4()`):
+
+$$
+\alpha_{S_{O2}} = -i_{O,\mathrm{BM,ALG}} + \frac{32}{12}\, i_{C,\mathrm{BM,ALG}} - \frac{24}{14}\, i_{N,\mathrm{BM,ALG}} + \frac{40}{31}\, i_{P,\mathrm{BM,ALG}} + 8\, i_{H,\mathrm{BM,ALG}}.
+$$
+
+- **S_H2O:** fixed SI coefficient on the water balance column for this row (see `ALPHA_ALG_H2O_RHO1` in code).
+
+### 5.5 “Oxygen vs yield”: when a short formula is enough
+
+In **introductory ASM-style** aerobic heterotrophic growth, one often writes oxygen demand per **unit biomass COD formed** in terms of yield **Y** on a COD basis. That is a **different** normalization than phototrophic ρ₁ above. In **this** codebase, **aerobic growth of X_H on NH₄** (process 5, ρ₅) uses the familiar identity
+
+$$
+\alpha_{S_{O2}} = -\left(\frac{1}{Y_H} - 1\right),
+$$
+
+i.e. row 5, column **S_O2**, is **−**(1/**Y_H** − 1), which links oxygen consumption to heterotrophic yield for that row only. Other processes (algae, nitrifiers, anoxic routes) use their **own** SI.3.3 expressions. In particular, there is **no** universal shortcut such as
+
+$$
+\alpha_{O2} = 1 - Y_{\mathrm{biomass}}
+$$
+
+that reproduces every oxygen stoichiometry in ALBA; phototrophic and other rows need the full SI.3.3 construction (§5.4).
 
 > For the complete Petersen matrix of the ALBA model, see [STOICHIOMETRY.md](STOICHIOMETRY.md).

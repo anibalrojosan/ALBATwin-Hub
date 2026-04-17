@@ -4,15 +4,15 @@ ALBA model stoichiometry: Petersen matrix and composition matrix.
 Implements the 19x17 Petersen matrix (biological processes) and 6x17 composition
 matrix for mass balance validation. Based on Casagli et al. (2021) and ASM conventions.
 
-**Supplementary material (SI) mapping**
+**Supplementary material (SI) mapping** (`docs/supporting_informations/`)
 
-- **Table SI.3.1** (`docs/papers/supplementary_material_ALBA/...SI.3.1...md`): process
+- **Table SI.3.1** (`SI.3 - Table SI.3.1: ALBA model stoichiometric matrix.md`): process
   layout and composition matrix structure. Numeric composition cells here must match
   `get_composition_matrix()` (the repo table is kept aligned with this module).
-- **Table SI.3.2**: all stoichiometric *parameters* (yields, i_C, i_N, f_XI, …) used in
+- **Table SI.3.2** (`SI.3 - Table SI.3.2: Stoichiometric coefficient values implemented in the ALBA bioprocesses.md`): all stoichiometric *parameters* (yields, i_C, i_N, f_XI, …) used in
   both the composition matrix and Petersen coefficients. Kinetic parameters from
   other SI tables do **not** appear in **S**; they only scale **ρ** in **dC/dt = Sᵀρ**.
-- **Table SI.3.3**: closed-form expressions for Petersen entries **α**; implemented in
+- **Table SI.3.3** (`SI.3 - Table SI.3.3: Stoichiometric coefficient expressions.md`): closed-form expressions for Petersen entries **α**; implemented in
   `get_petersen_matrix()`.
 """
 
@@ -286,7 +286,7 @@ def get_petersen_matrix() -> np.ndarray:
     Return the 19x17 Petersen matrix (biological processes only).
 
     Stoichiometric coefficients follow Table SI.3.3 in the ALBA supplementary
-    material (docs/papers/supplementary_material_ALBA/). Processes rho20-22
+    material (``docs/supporting_informations/``). Processes rho20-22
     (equilibrium) are excluded (hydrochemistry sprint).
     """
     S = np.zeros((N_PROCESSES, N_STATE))
