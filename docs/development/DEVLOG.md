@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-17 - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit](#2026-04-17---sprint-2b-nineteen-process-rates-test-policy-and-ci-mass-balance-audit)
 - [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#2026-04-16---sprint-2b-kinetics-api-stub-ssot-parameters-and-algebraic-modifiers)
 - [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#2026-04-15---sprint-25a-stoichiometric-o-and-h-closure-layers-and-extended-statevector)
 - [2026-03-31 - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)](#2026-03-31---sprint-2-deepresearch-and-explicit-oh-balance-rho14-alba-vs-asm)
@@ -17,6 +18,32 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
 
 ---
+
+## [2026-04-17] - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit
+
+### Context & Goals
+Close **`phase1-02B: BioKinetics`** deliverables for the 19 biological rates $\rho_1\ldots\rho_{19}$ (`docs/MATH_MODEL.md` §4), keep CI green while retaining **visible, failing** strict SI elemental audits for O/H closure work, and document how to run tests locally.
+
+### Technical Implementation
+- **`src/bioprocess_twin/models/kinetics.py`:** 
+    - Full `calculate_rates(state, env, kinetic_parameters=None)` with Liebig `min(...)`, NH₄/NO₃ switches, anoxic $K_O/(K_O+S_{O2})$, §3 modifiers, dimensionless light factor $f_{I,\mathrm{dim}}$ per `MATH_MODEL.md` §3.3 note; `rho[i]` = $\rho_{i+1}$ aligned with `get_petersen_matrix()` rows; nonnegative **clip** for raw `ndarray` state.
+- **`docs/MATH_MODEL.md`:** 
+    - Clarified §3.3 vs §4 composition for $f_I$ and $\mu_{\max,\mathrm{ALG}}$.
+- **Tests:** 
+    - Expanded `tests/unit/test_kinetics.py` (plateaus, cardinals, hand checks, `ndarray` clip); 
+    - `pyproject.toml` marker **`strict_si_mass_balance`** on `test_mass_balance_conservation` and parametrized per-cell tests; 
+    - default `pytest` uses **`-m "not strict_si_mass_balance"`** so coverage and the main CI job exclude those cases.
+- **CI:** 
+    - [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) — job **`mass-balance-si-audit`** runs `pytest -m strict_si_mass_balance -o addopts=''` with **`continue-on-error: true`**.
+- **Docs:** 
+    - [`docs/development/TESTING.md`](TESTING.md) — commands for default pytest, SI audit, subsets, and ruff.
+
+### 💡 Deep Dive: Why two pytest modes
+Elemental closure on the **literal** Casagli SI block is a **policy and modeling** topic (ADR 007, water/proton layers). Failing audits are **informative**, not regressions in $\boldsymbol{\rho}$. Splitting **gate** vs **audit** keeps velocity on kinetics while preserving a one-command view of residual cells.
+
+### Next Steps
+- Wire **ODE RHS** to `calculate_rates` and `Sᵀρ` with a chosen `closure_mode` for `S` and state length.
+- Tighten or extend strict SI tests when closure rows and `I` are finalized; optionally raise audit job to hard-fail when residuals are within a new tolerance.
 
 ---
 
