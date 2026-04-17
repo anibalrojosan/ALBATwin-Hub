@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#2026-04-16---sprint-2b-kinetics-api-stub-ssot-parameters-and-algebraic-modifiers)
 - [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#2026-04-15---sprint-25a-stoichiometric-o-and-h-closure-layers-and-extended-statevector)
 - [2026-03-31 - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)](#2026-03-31---sprint-2-deepresearch-and-explicit-oh-balance-rho14-alba-vs-asm)
 - [2026-03-30 - Sprint 2: Mass Balance Cell Diagnostics and SI Alignment Checkpoint](#2026-03-30---sprint-2-mass-balance-cell-diagnostics-and-si-alignment-checkpoint)
@@ -14,6 +15,31 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+---
+
+## [2026-04-16] - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers
+
+### Context & Goals
+Continue **`phase1-02B: BioKinetics`** on branch `feat/biokinetics-rates`: align documentation with ALBA supplementary material, expose a stable **`calculate_rates`** entry point (still returning zeros until full $\boldsymbol{\rho}$ wiring), central kinetic constants from `docs/MATH_MODEL.md` §1.2 and pure **modifier** functions for §3 (temperature, pH, light, DO).
+
+### Technical Implementation
+- **Documentation & SI layout:** Added/relocated ALBA supporting markdown and figures under `docs/supporting_informations/`; updated `docs/MATH_MODEL.md` (SSOT from SI.5, links to SI.6/SI.7, clarifications); stoichiometry docstrings now point SI.3 references at the new paths (`f8e80ab`).
+- **`src/bioprocess_twin/models/kinetics.py`:** Introduced `EnvConditions` and `calculate_rates(state, env, n_processes=19)` returning a **19-vector of zeros** (contract for Paso 4); normalization for 17 vs 18 state components as in Paso 1 (`0a589bf`).
+- **`src/bioprocess_twin/models/kinetic_parameters.py`:** Frozen Pydantic `KineticParameters` with nested `CardinalTemperature` / `CardinalPH`; factory `default_alba()` with nominal §1.2 values (midpoints where ranges use “±”); explicit **`k_a`** for urea / $S_{\mathrm{ND}}$ kinetics (`15450b0`).
+- **`src/bioprocess_twin/models/kinetic_modifiers.py`:** Pure helpers—CTMI growth $f_T$, Arrhenius decay, CPM $f_{\mathrm{pH}}$, Haldane $f_I$, Hill $f_{\mathrm{DO}}$ (growth vs decay) per §3, with documented guards (zero outside cardinals, safe denominators).
+- **`docs/MATH_MODEL.md`:** New §1.2.2 row for **`K_a`** (nominal 1.0 gN·m⁻³, Henze-style note where Casagli SI.5 does not list it).
+- **Tests:** `tests/unit/test_kinetics.py`, `tests/unit/test_kinetic_parameters.py`, `tests/unit/test_kinetic_modifiers.py`; exports updated in `src/bioprocess_twin/models/__init__.py`.
+
+### 💡 Deep Dive: SSOT parameters vs stoichiometry
+`KineticParameters` holds **rates, half-saturation constants, $\theta$ factors, and cardinals** for use in $\rho_i$ expressions; **`stoichiometry.py`** remains the home for **Petersen `S`** and composition **`I`**. Keeping them separate avoids duplicating yields/composition (§1.1).
+
+### Next Steps
+- Implement the **19 process rates** in `calculate_rates` (Monod/Liebig, inhibition, modifiers), using `default_alba()` and `kinetic_modifiers`, per §4 and `MATH_MODEL.md#biological-kinetics`.
+- Optional: smoke test importing kinetics + modifiers from the integrator path.
+- Note: strict **`S @ I.T`** mass-balance tests on literal SI rows still show large **O/H** residuals for bacterial processes (known from ADR 007 / closure work); closing the twin loop does not depend on relaxing that audit, but simulation should use **`get_petersen_matrix_for_simulation(closure_mode=...)`** when O/H-closed `S` is required.
 
 ---
 
