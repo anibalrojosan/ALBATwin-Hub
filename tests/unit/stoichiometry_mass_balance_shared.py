@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from bioprocess_twin.models.stoichiometry import get_composition_matrix, get_petersen_matrix
+from bioprocess_twin.stoichiometry_validation import MASS_BALANCE_ATOL
 
 ELEMENT_NAMES = ["COD", "O", "C", "N", "P", "H"]
 
@@ -74,3 +75,14 @@ def format_mass_balance_all_cells(balance: np.ndarray, atol: float) -> str:
             rows.append(f"{n:4d} rho{i + 1:2d} {ELEMENT_NAMES[k]:>4}  {r:+.6e}  {a:12.6e}  {ok}")
     assert n == 114, f"expected 114 cells, got {n}"
     return "\n".join(rows)
+
+
+# Public re-exports for tests; __all__ keeps Ruff from dropping MASS_BALANCE_ATOL on --fix (F401).
+__all__ = [
+    "MASS_BALANCE_ATOL",
+    "ELEMENT_NAMES",
+    "PETERSEN_PROCESS_LABELS",
+    "compute_mass_balance_matrix",
+    "format_mass_balance_by_element_summary",
+    "format_mass_balance_all_cells",
+]

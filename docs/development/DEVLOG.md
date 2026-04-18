@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-17 - Sprint phase1-03: HydroChemistry pedagogical doc (HYDROCHEMISTRY.md)](#2026-04-17---sprint-phase1-03-hydrochemistry-pedagogical-doc-hydrochemistrymd)
 - [2026-04-17 - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit](#2026-04-17---sprint-2b-nineteen-process-rates-test-policy-and-ci-mass-balance-audit)
 - [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#2026-04-16---sprint-2b-kinetics-api-stub-ssot-parameters-and-algebraic-modifiers)
 - [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#2026-04-15---sprint-25a-stoichiometric-o-and-h-closure-layers-and-extended-statevector)
@@ -16,6 +17,24 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+## [2026-04-17] - Sprint phase1-03: HydroChemistry pedagogical doc (HYDROCHEMISTRY.md)
+
+### Context & Goals
+Support **`phase1-03: HydroChemistry Module and pH Solver (DAE)`** with a long-form, university-style guide that connects reactor biology, SI.6 aqueous equilibria, SI.7 gas transfer, temperature effects, and the nested DAE strategy (**ADR 003**) to an implementation map without duplicating full parameter tables in `MATH_MODEL.md`.
+
+### Technical Implementation
+- Added **[`docs/HYDROCHEMISTRY.md`](../HYDROCHEMISTRY.md)**: Parts A - I cover ODE state/totals, speciation and unit factors $10^3$/$10^6$, charge balance and alkalinity intuition, van’t Hoff vs $\theta^{T-20}$ vs Henry correlations, SI.7 driving forces, mermaid flow aligned with `ARCHITECTURE.md`, code module boundaries, testing checklist, and an appendix contrasting **`S_H_PROTON`** (ADR 007 audit) with SI.6 pH.
+- Linked **`MATH_MODEL.md` §3** to **`HYDROCHEMISTRY.md`** as the pedagogical companion; SSOT tables remain in §1.2.6–1.2.7 and SI files.
+
+### 💡 Deep Dive: Why a separate HydroChemistry narrative
+The SSOT is optimized for **implementation lookup**; newcomers need a **single storyline** from control volume → $\mathbf{S}^\top\boldsymbol{\rho}$ → totals vs species → electroneutrality → nested Newton inside the ODE RHS. Centralizing that narrative reduces duplication in issues and onboarding without changing stoichiometric norms.
+
+### Next Steps
+- Implement **`src/bioprocess_twin/models/chemistry.py`** per `ARCHITECTURE.md` and validate against SI.6/SI.7 with unit tests.
+- Wire $\rho_{20}$–$\rho_{22}$ into the simulation RHS when the gas-transfer workstream extends `get_petersen_matrix()` or equivalent assembly.
 
 ---
 
