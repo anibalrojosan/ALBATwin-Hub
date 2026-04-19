@@ -411,7 +411,44 @@ with $H_{S_j}$ in **liquid-phase concentration per partial pressure** units cons
 
 The SI text emphasizes this distinction immediately below SI.7.2.
 
-### 7.3 Implemented process rates $\rho_{20}$–$\rho_{22}$
+### 7.3 Driving force, saturation, and direction of transfer
+
+**Equilibrium (Henry) concentration in the liquid.** For a dilute species $j$ in equilibrium with a gas phase at partial pressure $p_{S_j}$, the SI packs solubility into $H_{S_j}(T)$ so that the **liquid-side concentration in equilibrium with the gas** is
+
+$$
+C_j^* = H_{S_j}(T)\, p_{S_j}.
+$$
+
+**Liquid-side concentration that enters the flux.** Let $C_j^{\mathrm{liq}}$ denote the **actual** dissolved concentration of the **same chemical form** that Henry’s law uses for species $j$ (§7.2): $S_{\mathrm{O_2}}$ for oxygen; volatile $\mathrm{CO_2(aq)}$ for carbon dioxide; unionized $\mathrm{NH_3}$ for ammonia.
+
+**Linear driving force.** The bracket in SI.7.2 is the **thermodynamic driving force** (units consistent with $Q_j$ and $H$):
+
+$$
+\Delta_j = C_j^* - C_j^{\mathrm{liq}}.
+$$
+
+With a **positive** overall kinetic prefactor $K_j > 0$ (volumetric transfer coefficient in the SI sense: $k_La_{\mathrm{O_2}}$, diffusivity ratio, and, in Table SI.7.1, the factor $\theta^{T-20}$), the model writes
+
+$$
+Q_j = K_j\, \Delta_j.
+$$
+
+**Physical interpretation of the sign of $Q_j$** (convention as in Casagli et al.: $Q_j$ is a **volumetric rate** added to the liquid balance for that component):
+
+- If $\Delta_j > 0$ ($C_j^{\mathrm{liq}} < C_j^*$): the liquid is **undersaturated** relative to the atmosphere → **net dissolution / reaeration** → $Q_j > 0$ tends to **raise** $C_j^{\mathrm{liq}}$ over time (other processes permitting).
+- If $\Delta_j < 0$ ($C_j^{\mathrm{liq}} > C_j^*$): the liquid is **supersaturated** relative to the gas phase → **net volatilization / stripping** → $Q_j < 0$ tends to **lower** $C_j^{\mathrm{liq}}$.
+
+The gas transfer it's not implemented as 'enters' or 'escapes': **one** expression fixes the direction from the sign of $\Delta_j$.
+
+**Oxygen and diel (day–night) cycles.** During **daytime**, strong **photosynthesis** can raise $S_{\mathrm{O_2}}$ until the liquid approaches or exceeds air equilibrium ($C_{\mathrm{O_2}}^*$), so $\Delta_{\mathrm{O_2}}$ may become **negative** and **loss** of $\mathrm{O_2}$ to the atmosphere can dominate interfacial exchange. During **night**, photosynthesis drops while **respiration** continues; if consumption outpaces reaeration, $S_{\mathrm{O_2}}$ can fall **below** $C_{\mathrm{O_2}}^*$, $\Delta_{\mathrm{O_2}} > 0$, and **net uptake** of $\mathrm{O_2}$ from the air is expected. The actual trajectory depends on biomass, light, temperature, $k_La$, and the full RHS—not on a fixed rule “$\mathrm{O_2}$ always leaves.”
+
+**Carbon dioxide.** $\mathrm{CO_2}$ can **enter** the liquid when biology or chemistry keeps free $\mathrm{CO_2(aq)}$ **below** $C_{\mathrm{CO_2}}^*$ (e.g. rapid daytime carbon fixation shifting carbonate speciation). It can **leave** when the volatile dissolved form is **above** equilibrium. Again the sign follows $\Delta_{\mathrm{CO_2}}$, not “$\mathrm{CO_2}$ always strips.”
+
+**Ammonia.** The same structure applies with $C^{\mathrm{liq}}$ as unionized $\mathrm{NH_3}$ and $p_{\mathrm{NH_3}}$ typically small in ambient air; high pH increases the volatile fraction from $S_{\mathrm{NH}}$, which often pushes toward **stripping**, but the **direction** is still set by $\Delta_{\mathrm{NH_3}}$.
+
+**Nitrogen gas ($\mathrm{N_2}$).** The published SI.7 excerpt in this repository documents $\rho_{20}$–$\rho_{22}$ for $\mathrm{O_2}$, $\mathrm{CO_2}$, and $\mathrm{NH_3}$ only. The ALBA state vector includes $S_{\mathrm{N_2}}$ ([`MATH_MODEL.md`](MATH_MODEL.md) §2); **if** interfacial $\mathrm{N_2}$ exchange is implemented analogously, the same driving-force logic applies with $p_{\mathrm{N_2}}$ near $0.78\ \mathrm{atm}$ in air—**either** uptake or release depending on whether $S_{\mathrm{N_2}}$ is below or above the corresponding $C_{\mathrm{N_2}}^*$. That process is **not** part of Table SI.7.1 as transcribed here until explicitly implemented.
+
+### 7.4 Implemented process rates $\rho_{20}$–$\rho_{22}$
 
 Table SI.7.1 collects the model’s gas-transfer rates (with $\theta^{T-20}$, diffusivity scaling, Henry terms, and **volatile fractions** expressed using $\mathrm{H_{ION}^+}$ and $K_a$ combinations). The $\mathrm{CO_2}$ and $\mathrm{NH_3}$ rows use shorthand fractions:
 
@@ -423,7 +460,7 @@ in the SI file’s notation (subscripts follow the table; align $K_a$ convention
 
 **Implementation consistency:** Driving-force concentrations must use the **same** unit system as SI.6 speciation. If a shorthand in Table SI.7.1 is ambiguous, the **full** $\mathrm{CO_2}$ expression from SI.6 row 8 is the authoritative volatile $\mathrm{CO_2}$ concentration from $S_{\mathrm{IC}}$ and $\mathrm{[H^+]}$.
 
-### 7.4 Empirical $H(T)$ formulas
+### 7.5 Empirical $H(T)$ formulas
 
 Equations SI.7.3–SI.7.5 give $H_{\mathrm{O_2}}(T)$, $H_{\mathrm{CO_2}}(T)$, and $H_{\mathrm{NH_3}}(T)$ as exponentials in $(1/T_{\mathrm{K}} - 1/T_{\mathrm{ref,K}})$. These are **paper-chosen** correlations; implement them **exactly** when reproducing Casagli et al. (2021).
 
@@ -491,12 +528,12 @@ flowchart LR
 
 The exact signature will follow the project’s `StateVector` / `EnvConditions` types under [`src/bioprocess_twin`](../src/bioprocess_twin/).
 
-### 9.2 Recommended internal functions
+### 9.2 Internal functions
 
-| Concern | Suggested function | Notes |
+| Concern | Function | Notes |
 |--------|--------------------|-------|
 | $K_a(T)$, $K_w(T)$ | `dissociation_constants_at_T(...)` | van’t Hoff from reference values; source $\Delta H^\circ$ consistently. |
-| Totals → mol m$^{-3}$ | `totals_to_molar(...)` | $S_{\mathrm{IC}}/12$, $S_{\mathrm{NH}}/14$, etc. |
+| Totals → mol $\text{m}^{-3}$ | `totals_to_molar(...)` | $S_{\mathrm{IC}}/12$, $S_{\mathrm{NH}}/14$, etc. |
 | Speciation | `speciate(h_plus, totals, constants)` | Implement Table SI.6.1 rows 2, 4, 6, 8–9, 11–13, 14. |
 | Charge residual | `charge_residual(h_plus, ...)` | SI.6 row 15 including $\Delta \mathrm{CAT_{AN}}$ as a parameter or state field. |
 | Root find | `solve_ph_newton(...)` | Bracket $\mathrm{[H^+]}$; optionally solve in $\log_{10} \mathrm{[H^+]}$ for robustness. |
@@ -533,7 +570,6 @@ See [`docs/development/TESTING.md`](development/TESTING.md) for project test com
 ### 10.2 Literature
 
 - **ALBA:** Casagli et al. (2021) — [`REFERENCES.md`](REFERENCES.md).
-- **Water chemistry fundamentals** (alkalinity, carbonate chemistry): standard texts such as Stumm & Morgan, *Aquatic Chemistry*; Dickson, Goyet, *Guide to Best Practices for Ocean CO2 Measurements* (for rigorous carbonate notation — concepts transferable to freshwater engineering models).
 
 ---
 
