@@ -50,12 +50,11 @@ The underlying literature traces values primarily to **CODATA** Key Values, **NI
 
 ---
 
-## 5. Consistency warning: $T_{\mathrm{ref}}$ for $K$ vs 298.15 K for $\Delta H^\circ$
+## 5. Reference temperature for $K_{a,\mathrm{ref}}$ and $\Delta H^\circ$
 
-Recommended $\Delta H^\circ$ in the table are anchored to **298.15 K** thermodynamic standard conditions. The reference $K_a$ used in code may be tied to a different reference temperature (e.g. **293.15 K** to match Table SI.6.1 in this repository). Mixing **$K$ at 293.15 K** with **$\Delta H^\circ$ at 298.15 K** in a single van’t Hoff integration introduces a **small** systematic mismatch (~5 K). For strict alignment, either:
+Recommended $\Delta H^\circ$ in the table are anchored to **298.15 K** (infinite dilution, 1 bar). In [`src/bioprocess_twin/models/chemistry.py`](../../src/bioprocess_twin/models/chemistry.py), **`T_REF_K = 298.15`** and **`default_dissociation_constants_ref_molar()`** supplies $K_a$ and $K_w$ at that same temperature (from **`MATH_MODEL.md`** §1.2.7), so van’t Hoff uses a **matched** $(K_{a,\mathrm{ref}}, T_{\mathrm{ref}}, \Delta H^\circ)$ triple for the default bundle.
 
-- use $K_{a,\mathrm{ref}}$ at **298.15 K** with the tabulated $\Delta H^\circ$, or  
-- re-evaluate / fit $\Delta H^\circ$ so that the pair $(K_{a,\mathrm{ref}}, \Delta H^\circ)$ matches the same $T_{\mathrm{ref}}$.
+If you replace $K_{a,\mathrm{ref}}$ with values at another temperature (e.g. **293.15 K** from Table SI.6.1 alone) while keeping these $\Delta H^\circ$, re-check consistency or set **`T_REF_K`** and enthalpies to match your chosen baseline.
 
 ---
 

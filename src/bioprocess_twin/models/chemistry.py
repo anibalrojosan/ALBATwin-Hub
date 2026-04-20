@@ -1,17 +1,14 @@
 """
 ALBA aqueous chemistry: reference dissociation constants and van't Hoff scaling.
 
-Reference K_a and K_w in mol/L are taken from Table SI.6.1 in
-docs/supporting_informations/SI.6 (third column, header 293 K).
+Reference K_a and K_w in mol/L for ka_at_T are at T_REF_K = 298.15 K: default_dissociation_constants_ref_molar
+builds them from docs/MATH_MODEL.md §1.2.7 (pK_a at 25 °C) and K_w ~ 1e-14 at 25 °C.
 
-Equation SI.6.4 in the same file uses the van't Hoff form with T in Celsius and T_ref in the
-text given as 298.15 K; the tabulated K values are at 293 K. This module uses T_REF_K = 293.15
-so K_ref in ka_at_T matches the table temperature (same equation shape as SI.6.4).
+Table SI.6.1 (docs/supporting_informations/SI.6) lists some K_A at ~293 K; those paper values can
+differ slightly from the §1.2.7 pack. The implementation uses §1.2.7 + 298.15 K as SSOT for K_ref.
 
-default_dissociation_enthalpy_j_per_mol uses evaluated standard reaction enthalpies (infinite
-dilution, ~298.15 K, 1 bar) form various resources. Mixing these ΔH° with K_ref anchored at 
-T_REF_K = 293.15 K is a small inconsistency (~5 K); for full alignment either move K_ref to 298.15 K or 
-re-fit ΔH° to the SI.6.1 table temperature.
+default_dissociation_enthalpy_j_per_mol supplies Delta H° (infinite dilution, 298.15 K, 1 bar) consistent
+with docs/notes/aqueous-acid-base-reaction-enthalpies.md, matching the same T_ref as K_ref.
 """
 
 from __future__ import annotations
@@ -22,8 +19,8 @@ from dataclasses import dataclass
 # SI.6.4: gas constant [J K^-1 mol^-1]
 R_GAS = 8.314462618
 
-# Temperature of K_A in Table SI.6.1 (293 K) [K]; used as T_ref in ka_at_T with tabulated K
-T_REF_K = 293.15
+# Reference T for K_a,ref and K_w,ref in ka_at_T / scale_dissociation_constants_at_t [K]
+T_REF_K = 298.15
 
 # Molar masses for ALBA state totals [g mol^-1] (SI.6 uses 12, 14, 31)
 M_C = 12.0
@@ -33,7 +30,7 @@ M_P = 31.0
 
 @dataclass(frozen=True, slots=True)
 class AlbaDissociationConstantsRef:
-    """Dissociation constants at T_REF_K (298.15 K), in mol/L. Field names match SI.6.1."""
+    """Dissociation constants at T_REF_K (298.15 K by default), in mol/L. Field names match SI.6.1."""
 
     ka_co2: float
     ka_hco3: float

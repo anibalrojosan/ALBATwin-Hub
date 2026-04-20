@@ -358,7 +358,14 @@ with $T_{\mathrm{K}} = T + 273.15$ for $T$ in °C as written in the SI file (Equ
 
 **Implementation note:** Each acid–base pair has its own $\Delta H^\circ$ in a full compilation; the repository should source those values consistently with the chosen $K_{a,T_{\mathrm{ref}}}$ baseline.
 
-**Repository note:** Default standard reaction enthalpies ΔH° (infinite dilution, ~298.15 K, 1 bar), their literature/database lineage, and the caveat about matching the reference temperature for K_a to the enthalpy baseline are summarized in [`notes/aqueous-acid-base-reaction-enthalpies.md`](notes/aqueous-acid-base-reaction-enthalpies.md). The same numbers are exposed in code via `default_dissociation_enthalpy_j_per_mol()` in [`src/bioprocess_twin/models/chemistry.py`](../src/bioprocess_twin/models/chemistry.py).
+**Repository conventions (code):** 
+- In [`src/bioprocess_twin/models/chemistry.py`](../src/bioprocess_twin/models/chemistry.py), **`T_REF_K = 298.15`** is the Kelvin temperature at which **`default_dissociation_constants_ref_molar()`** defines $K_a$ and $K_w$. Those constants follow **`MATH_MODEL.md`** §1.2.7 ($pK_a$ at **25 °C** → mol·L$^{-1}$) and the usual $K_w \approx 10^{-14}$ at 25 °C. 
+- **`ka_at_T` / `scale_dissociation_constants_at_t`** use Equation SI.6.4 with that same $T_{\mathrm{ref}}$, so $K_{a,T_{\mathrm{ref}}}$ and the tabulated $\Delta H^\circ$ baseline (**298.15 K**, infinite dilution, 1 bar — see the note below) are **aligned**. 
+- Table SI.6.1 in the repo marks some numeric $K_A$ at **293 K**; those are the paper’s rounded values at ~20 °C and may differ slightly from the MATH_MODEL $pK_a$ pack — the **implementation SSOT** for $K_{a,\mathrm{ref}}$ in code is §1.2.7 at **298.15 K**, not the SI column in isolation.
+
+**Repository note:** 
+- Default standard reaction enthalpies $\Delta H^\circ$ (infinite dilution, **298.15 K**, 1 bar), their literature/database lineage, and reaction definitions are summarized in [`notes/aqueous-acid-base-reaction-enthalpies.md`](notes/aqueous-acid-base-reaction-enthalpies.md). 
+- The same numbers are exposed via **`default_dissociation_enthalpy_j_per_mol()`** in [`chemistry.py`](../src/bioprocess_twin/models/chemistry.py).
 
 ### 6.2 Arrhenius law and the $\theta^{T-20}$ shorthand
 
@@ -552,7 +559,7 @@ The exact signature will follow the project’s `StateVector` / `EnvConditions` 
 
 | Concern | Function | Notes |
 |--------|--------------------|-------|
-| $K_a(T)$, $K_w(T)$ | `dissociation_constants_at_T(...)` | van’t Hoff from reference values; source $\Delta H^\circ$ consistently. |
+| $K_a(T)$, $K_w(T)$ | `scale_dissociation_constants_at_t(ref, dh, T_celsius)` | van’t Hoff from $K_{a,\mathrm{ref}}$ at **298.15 K** (`T_REF_K`) and `AlbaDissociationEnthalpy`. |
 | Totals → mol $\text{m}^{-3}$ | `totals_to_molar(...)` | $S_{\mathrm{IC}}/12$, $S_{\mathrm{NH}}/14$, etc. |
 | Speciation | `speciate(h_plus, totals, constants)` | Implement Table SI.6.1 rows 2, 4, 6, 8–9, 11–13, 14. |
 | Charge residual | `charge_residual(h_plus, ...)` | SI.6 row 15 including $\Delta \mathrm{CAT_{AN}}$ as a parameter or state field. |
