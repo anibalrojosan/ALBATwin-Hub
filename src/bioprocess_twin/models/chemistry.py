@@ -371,3 +371,222 @@ def speciate_from_alba_totals(
         c_tot_po4=mol_p_per_m3_phosphorus_from_s_po4(s_po4_g_per_m3),
     )
     return speciate_aqueous(h_plus_mol_per_m3, totals, k)
+
+
+# --- Stage 3: charge balance and pH solve (SI.6.1 row 15) ---
+
+
+class PHSolveError(RuntimeError):
+    """Raised when solve_pH cannot find a valid root in configured bounds."""
+
+
+@dataclass(frozen=True, slots=True)
+class ChargeBalanceInputs:
+    """Inputs for SI.6.1 row 15 residual and pH solving."""
+
+    totals: SpeciationTotals
+    t_celsius: float
+    delta_cat_an_mol_per_m3: float = 0.0
+    k_ref: AlbaDissociationConstantsRef | None = None
+    dh: AlbaDissociationEnthalpy | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PHSolverOptions:
+    """Numerical settings for solve_pH in log10([H+]) space."""
+
+    residual_tol: float = 1.0e-12
+    x_step_tol: float = 1.0e-10
+    max_iterations: int = 10
+    ph_min: float = 0.0
+    ph_max: float = 14.0
+    derivative_dx: float = 1.0e-6
+    fallback_iterations: int = 80
+
+
+@dataclass(frozen=True, slots=True)
+class PHSolveResult:
+    """Result payload for solve_pH."""
+
+    h_plus_mol_per_m3: float
+    ph: float
+    residual: float
+    iterations: int
+    converged: bool
+    method_used: str
+
+
+def ph_from_h_plus_mol_per_m3(h_plus_mol_per_m3: float) -> float:
+    """Convert [H+] in mol m^-3 to pH on mol/L convention: pH = 3 - log10([H+]_m3)."""
+    return 3.0 - math.log10(h_plus_mol_per_m3)
+
+
+def h_plus_mol_per_m3_from_ph(ph: float) -> float:
+    """Convert pH to [H+] in mol m^-3: [H+]_m3 = 10^(3 - pH)."""
+    return 10.0 ** (3.0 - ph)
+
+
+def charge_residual(h_plus_mol_per_m3: float, inputs: ChargeBalanceInputs) -> float:
+    """
+    SI.6.1 row 15 charge-balance residual in mol m^-3.
+
+    Positive and negative ionic terms are assembled from Stage 2 speciation at current [H+].
+    A root (residual = 0) corresponds to electroneutrality.
+    """
+    if h_plus_mol_per_m3 <= 0.0:
+        raise ValueError("h_plus_mol_per_m3 must be > 0")
+    if inputs.totals.c_tot_nh3 < 0.0:
+        raise ValueError("total concentrations must be nonnegative")
+
+    k_ref = inputs.k_ref or default_dissociation_constants_ref_molar()
+    dh = inputs.dh or default_dissociation_enthalpy_j_per_mol()
+    k_t = scale_dissociation_constants_at_t(k_ref, dh, inputs.t_celsius)
+    sp = speciate_aqueous(h_plus_mol_per_m3, inputs.totals, k_t)
+    return (
+        h_plus_mol_per_m3
+        + sp.nh4
+        + inputs.delta_cat_an_mol_per_m3
+        - sp.oh
+        - sp.no2
+        - sp.no3
+        - sp.hco3
+        - 2.0 * sp.co3
+        - sp.h2po4
+        - 2.0 * sp.hpo4
+        - 3.0 * sp.po4
+    )
+
+
+def solve_pH(
+    inputs: ChargeBalanceInputs,
+    initial_ph: float = 7.0,
+    options: PHSolverOptions | None = None,
+) -> PHSolveResult:
+    """
+    Solve SI.6.1 row 15 for pH using Newton iterations in log10([H+]) with bounded fallback.
+    """
+    # 1) Load solver options (defaults if caller did not pass custom options)
+    opt = options or PHSolverOptions()
+
+    # 2) Validate configured pH bounds
+    if not (opt.ph_min < opt.ph_max):
+        raise ValueError("ph_min must be < ph_max")
+
+    # 3) Work in x = log10([H+]_m3); convert pH bounds to x-bounds:
+    #    pH = 3 - log10([H+]_m3)  =>  x = 3 - pH
+    x_min = 3.0 - opt.ph_max
+    x_max = 3.0 - opt.ph_min
+
+    # 4) Initialize x from the user guess, clamped to the allowed bounds
+    x = min(max(3.0 - initial_ph, x_min), x_max)
+
+    # 5) Define residual in x-space: [H+] = 10^x, then evaluate charge balance
+    def f_of_x(x_log10_h: float) -> float:
+        return charge_residual(10.0**x_log10_h, inputs)
+
+    # 6) Primary solver path: Newton iterations in log-space
+    for i in range(1, opt.max_iterations + 1):
+        fx = f_of_x(x)
+
+        # 6a) Converged if residual is already below tolerance
+        if abs(fx) <= opt.residual_tol:
+            h_plus = 10.0**x
+            return PHSolveResult(
+                h_plus_mol_per_m3=h_plus,
+                ph=ph_from_h_plus_mol_per_m3(h_plus),
+                residual=fx,
+                iterations=i,
+                converged=True,
+                method_used="newton_logh",
+            )
+
+        # 6b) Finite-difference derivative dF/dx around current x
+        dx = opt.derivative_dx
+        x_lo = max(x_min, x - dx)
+        x_hi = min(x_max, x + dx)
+
+        # If derivative window collapses, Newton cannot proceed
+        if x_hi == x_lo:
+            break
+
+        dfdx = (f_of_x(x_hi) - f_of_x(x_lo)) / (x_hi - x_lo)
+
+        # Guard against invalid derivative.
+        if dfdx == 0.0 or not math.isfinite(dfdx):
+            break
+
+        # 6c) Newton update in x-space.
+        step = fx / dfdx
+        x_next = x - step
+
+        # Keep Newton iterate inside physical pH bounds
+        x_next = min(max(x_next, x_min), x_max)
+
+        # 6d) If Newton step is tiny, accept only if residual is actually small
+        if abs(x_next - x) <= opt.x_step_tol:
+            residual_next = f_of_x(x_next)
+            if abs(residual_next) <= opt.residual_tol:
+                h_plus = 10.0**x_next
+                return PHSolveResult(
+                    h_plus_mol_per_m3=h_plus,
+                    ph=ph_from_h_plus_mol_per_m3(h_plus),
+                    residual=residual_next,
+                    iterations=i,
+                    converged=True,
+                    method_used="newton_logh",
+                )
+            # Tiny step but not converged -> switch to bounded fallback
+            break
+
+        # 6e) Continue Newton from updated iterate
+        x = x_next
+
+    # 7) Fallback path: bracket check over full bounds
+    f_min = f_of_x(x_min)
+    f_max = f_of_x(x_max)
+
+    # Exact root at lower/upper bound (rare but valid)
+    if f_min == 0.0:
+        h_plus = 10.0**x_min
+        return PHSolveResult(h_plus, ph_from_h_plus_mol_per_m3(h_plus), 0.0, 0, True, "fallback_bracket")
+    if f_max == 0.0:
+        h_plus = 10.0**x_max
+        return PHSolveResult(h_plus, ph_from_h_plus_mol_per_m3(h_plus), 0.0, 0, True, "fallback_bracket")
+
+    # Without sign change in [x_min, x_max], bracket methods cannot guarantee a root
+    if f_min * f_max > 0.0:
+        raise PHSolveError("No sign change in pH bounds; cannot bracket charge residual root.")
+
+    # 8) Bisection-like bounded solve inside the valid bracket
+    left, right = x_min, x_max
+    f_left = f_min
+    for j in range(1, opt.fallback_iterations + 1):
+        mid = 0.5 * (left + right)
+        f_mid = f_of_x(mid)
+
+        # Converged by residual or by interval width
+        if abs(f_mid) <= opt.residual_tol or abs(right - left) <= opt.x_step_tol:
+            h_plus = 10.0**mid
+            return PHSolveResult(
+                h_plus_mol_per_m3=h_plus,
+                ph=ph_from_h_plus_mol_per_m3(h_plus),
+                residual=f_mid,
+                iterations=opt.max_iterations + j,
+                converged=True,
+                method_used="fallback_bracket",
+            )
+
+        # Keep the half-interval that preserves sign change
+        if f_left * f_mid <= 0.0:
+            right = mid
+        else:
+            left = mid
+            f_left = f_mid
+
+    # 9) If fallback ran out of iterations, raise explicit solver failure
+    h_plus = 10.0 ** (0.5 * (left + right))
+    residual = charge_residual(h_plus, inputs)
+    raise PHSolveError(
+        f"Fallback bracket did not converge (residual={residual:.3e}, "
+        f"iterations={opt.max_iterations + opt.fallback_iterations}).",
+    )

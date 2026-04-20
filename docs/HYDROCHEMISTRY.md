@@ -328,6 +328,8 @@ $$
 
 For fixed temperature (hence fixed $K_a$, $K_w$), fixed analytical totals, and fixed $\Delta \mathrm{CAT_{AN}}$, the speciation fractions are uniquely determined by $\mathrm{[H^+]}$. The charge-balance function $F$ is **monotone** in typical natural-water composition ranges, which guarantees a **unique** root — exactly what a Newton iteration can find robustly if bracketed sensibly.
 
+**Repository implementation (Stage 3):** `charge_residual(h_plus, inputs)` assembles SI.6 row 15 from Stage 2 species (`speciate_aqueous`), and `solve_pH(inputs, initial_ph, options)` solves in $\log_{10}[\mathrm{H^+}]$ with bounded fallback if Newton stalls.
+
 ### 5.5 Role of $\Delta \mathrm{CAT_{AN}}$ in calibration
 
 If $\Delta \mathrm{CAT_{AN}}$ is wrong, the implied pH is wrong even with perfect biology. In practice, $\Delta \mathrm{CAT_{AN}}$ may be **fitted** from alkalinity measurements or left as a scenario parameter. Documenting its calibration is part of using the twin against data ([`SI.8`](supporting_informations/SI.8%20Sensitivity%20analysis%20and%20calibration%20strategy.md), [`SI.9`](supporting_informations/SI.9%20Parameters%20uncertainty.md) in the supplementary material).
@@ -518,6 +520,8 @@ This is the classic **DAE** structure: differential variables plus an algebraic 
 
 **Cons:** extra root-finding work **per RHS evaluation**; care needed for smoothness and initial guesses when $\mathbf{C}$ changes rapidly.
 
+Current chemistry module policy uses Newton on $\log_{10}[\mathrm{H^+}]$ with pH bounds and a bracketed fallback path, returning convergence metadata (iterations, method used, residual).
+
 ### 8.3 Information flow (architecture-level)
 
 The following flow matches [`ARCHITECTURE.md`](ARCHITECTURE.md): environment forcing, biological rates, and hydrochemistry feed the assembled $\mathrm{d}\mathbf{C}/\mathrm{d}t$.
@@ -562,8 +566,8 @@ The exact signature will follow the project’s `StateVector` / `EnvConditions` 
 | $K_a(T)$, $K_w(T)$ | `scale_dissociation_constants_at_t(ref, dh, T_celsius)` | van’t Hoff from $K_{a,\mathrm{ref}}$ at **298.15 K** (`T_REF_K`) and `AlbaDissociationEnthalpy`. |
 | Totals → mol $\text{m}^{-3}$ | `totals_to_molar(...)` | $S_{\mathrm{IC}}/12$, $S_{\mathrm{NH}}/14$, etc. |
 | Speciation | `speciate(h_plus, totals, constants)` | Implement Table SI.6.1 rows 2, 4, 6, 8–9, 11–13, 14. |
-| Charge residual | `charge_residual(h_plus, ...)` | SI.6 row 15 including $\Delta \mathrm{CAT_{AN}}$ as a parameter or state field. |
-| Root find | `solve_ph_newton(...)` | Bracket $\mathrm{[H^+]}$; optionally solve in $\log_{10} \mathrm{[H^+]}$ for robustness. |
+| Charge residual | `charge_residual(h_plus, inputs)` | SI.6 row 15 including $\Delta \mathrm{CAT_{AN}}$ as a parameter or state field. |
+| Root find | `solve_pH(inputs, initial_ph, options)` | Newton in $\log_{10}\mathrm{[H^+]}$ with bounded fallback for robustness. |
 | Henry | `henry_constants_o2_co2_nh3(T_celsius)` | SI.7.3–SI.7.5. |
 | $k_La$ scale | `kla_effective(j, kla_o2_ref, T, theta)` | $\theta^{T-20}$ and $(D_j/D_{\mathrm{O_2}})^{1/2}$. |
 | Rates | `gas_transfer_rates(state, h_plus, T, p_gas, kla_o2)` | Table SI.7.1 driving forces. |
