@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-19 - Sprint phase1-03: chemistry stage 1 and HYDROCHEMISTRY gas–liquid driving forces](#2026-04-19---sprint-phase1-03-chemistry-stage-1-and-hydrochemistry-gasliquid-driving-forces)
 - [2026-04-17 - Sprint phase1-03: HydroChemistry pedagogical doc (HYDROCHEMISTRY.md)](#2026-04-17---sprint-phase1-03-hydrochemistry-pedagogical-doc-hydrochemistrymd)
 - [2026-04-17 - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit](#2026-04-17---sprint-2b-nineteen-process-rates-test-policy-and-ci-mass-balance-audit)
 - [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#2026-04-16---sprint-2b-kinetics-api-stub-ssot-parameters-and-algebraic-modifiers)
@@ -20,6 +21,23 @@ This document is a log of the development process of the project. It is used to 
 
 ---
 
+## [2026-04-19] - Sprint phase1-03: chemistry stage 1 and HYDROCHEMISTRY gas–liquid driving forces
+
+### Context & Goals
+Continue **phase1-03 (HydroChemistry / pH–DAE path)** with runnable reference code for SI.6 constants and temperature scaling, and deepen the pedagogical doc toward SI.7 mass-transfer language used in the twin.
+
+### Technical Implementation
+- **`src/bioprocess_twin/models/chemistry.py`:** 
+    - `R_GAS`, `T_REF_K`, reference $K_a$ from **MATH_MODEL.md** §1.2.7 (pK_a $\rightarrow$ mol/L), **`ka_at_T` / `kw_at_T`** per van’t Hoff **SI.6.4**, **`scale_dissociation_constants_at_t`**, and mol·m⁻³ helpers from ALBA totals $S_{\mathrm{IC}}$, $S_{\mathrm{NH}}$, nitrite/nitrate, $S_{\mathrm{PO4}}$. 
+    - Default **`AlbaDissociationEnthalpy`** uses **zero** $\Delta H^\circ$ as of now. I need to research those missing parameters.
+- **`tests/unit/test_chemistry_stage1.py`:** reference bundle, scaling API, conversion smoke checks.
+- **`docs/HYDROCHEMISTRY.md`:** new/extended material on gas–liquid driving force $\Delta = C^* - C^{\mathrm{liq}}$, Henry intuition, and alignment with **SI.7**.
+
+### Next Steps
+- Source $\Delta H^\circ$ per reaction consistently with chosen $K_{a,\mathrm{ref}}$ and $T_\mathrm{ref}$; wire chemistry into speciation / charge balance when the pH solver lands.
+
+---
+
 ## [2026-04-17] - Sprint phase1-03: HydroChemistry pedagogical doc (HYDROCHEMISTRY.md)
 
 ### Context & Goals
@@ -28,12 +46,13 @@ Support **`phase1-03: HydroChemistry Module and pH Solver (DAE)`** with a long-f
 ### Technical Implementation
 - Added **[`docs/HYDROCHEMISTRY.md`](../HYDROCHEMISTRY.md)**: Parts A - I cover ODE state/totals, speciation and unit factors $10^3$/$10^6$, charge balance and alkalinity intuition, van’t Hoff vs $\theta^{T-20}$ vs Henry correlations, SI.7 driving forces, mermaid flow aligned with `ARCHITECTURE.md`, code module boundaries, testing checklist, and an appendix contrasting **`S_H_PROTON`** (ADR 007 audit) with SI.6 pH.
 - Linked **`MATH_MODEL.md` §3** to **`HYDROCHEMISTRY.md`** as the pedagogical companion; SSOT tables remain in §1.2.6–1.2.7 and SI files.
+- Housekeeping with the same change set (`e03ecad`): **`tests/unit/stoichiometry_mass_balance_shared.py`** — re-export **`MASS_BALANCE_ATOL`** and define **`__all__`** for Ruff **F401** compliance.
 
 ### 💡 Deep Dive: Why a separate HydroChemistry narrative
 The SSOT is optimized for **implementation lookup**; newcomers need a **single storyline** from control volume → $\mathbf{S}^\top\boldsymbol{\rho}$ → totals vs species → electroneutrality → nested Newton inside the ODE RHS. Centralizing that narrative reduces duplication in issues and onboarding without changing stoichiometric norms.
 
 ### Next Steps
-- Implement **`src/bioprocess_twin/models/chemistry.py`** per `ARCHITECTURE.md` and validate against SI.6/SI.7 with unit tests.
+- Implement **`src/bioprocess_twin/models/chemistry.py`**; extend with speciation, $\Delta H^\circ$ sources, and pH solver integration.
 - Wire $\rho_{20}$–$\rho_{22}$ into the simulation RHS when the gas-transfer workstream extends `get_petersen_matrix()` or equivalent assembly.
 
 ---
@@ -72,6 +91,7 @@ Elemental closure on the **literal** Casagli SI block is a **policy and modeling
 Continue **`phase1-02B: BioKinetics`** on branch `feat/biokinetics-rates`: align documentation with ALBA supplementary material, expose a stable **`calculate_rates`** entry point (still returning zeros until full $\boldsymbol{\rho}$ wiring), central kinetic constants from `docs/MATH_MODEL.md` §1.2 and pure **modifier** functions for §3 (temperature, pH, light, DO).
 
 ### Technical Implementation
+- **Mass-balance documentation layout (PR #13, `e8cc2df`):** Moved narratives under **`docs/mass_balances/guides/`** and case studies; generated **114-cell** audits under **`docs/mass_balances/artifacts/`**; **`scripts/generate_mass_balances_md.py`** writes to **artifacts**; hub **`docs/MASS_BALANCES.md`**; **`MATH_MODEL.md`** / **`STOICHIOMETRY.md`** updates for closure modes and SI rows 20–22; **ADR 007** and cross-links refreshed.
 - **Documentation & SI layout:** Added/relocated ALBA supporting markdown and figures under `docs/supporting_informations/`; updated `docs/MATH_MODEL.md` (SSOT from SI.5, links to SI.6/SI.7, clarifications); stoichiometry docstrings now point SI.3 references at the new paths (`f8e80ab`).
 - **`src/bioprocess_twin/models/kinetics.py`:** Introduced `EnvConditions` and `calculate_rates(state, env, n_processes=19)` returning a **19-vector of zeros** (contract for Paso 4); normalization for 17 vs 18 state components as in Paso 1 (`0a589bf`).
 - **`src/bioprocess_twin/models/kinetic_parameters.py`:** Frozen Pydantic `KineticParameters` with nested `CardinalTemperature` / `CardinalPH`; factory `default_alba()` with nominal §1.2 values (midpoints where ranges use “±”); explicit **`k_a`** for urea / $S_{\mathrm{ND}}$ kinetics (`15450b0`).
@@ -83,7 +103,7 @@ Continue **`phase1-02B: BioKinetics`** on branch `feat/biokinetics-rates`: align
 `KineticParameters` holds **rates, half-saturation constants, $\theta$ factors, and cardinals** for use in $\rho_i$ expressions; **`stoichiometry.py`** remains the home for **Petersen `S`** and composition **`I`**. Keeping them separate avoids duplicating yields/composition (§1.1).
 
 ### Next Steps
-- Implement the **19 process rates** in `calculate_rates` (Monod/Liebig, inhibition, modifiers), using `default_alba()` and `kinetic_modifiers`, per §4 and `MATH_MODEL.md#biological-kinetics`.
+- ~~Implement the **19 process rates** in `calculate_rates`~~ **Delivered** 2026-04-17 (`e2e362c` / `58f3dc4`); next: wire **ODE RHS** to `calculate_rates` and `S^\top\boldsymbol{\rho}` with chosen `closure_mode`.
 - Optional: smoke test importing kinetics + modifiers from the integrator path.
 - Note: strict **`S @ I.T`** mass-balance tests on literal SI rows still show large **O/H** residuals for bacterial processes (known from ADR 007 / closure work); closing the twin loop does not depend on relaxing that audit, but simulation should use **`get_petersen_matrix_for_simulation(closure_mode=...)`** when O/H-closed `S` is required.
 
