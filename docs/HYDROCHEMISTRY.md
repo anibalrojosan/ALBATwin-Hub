@@ -10,19 +10,21 @@ This document explains, in textbook style, how **biology** (slow accumulation of
 
 ## Table of contents
 
-1. [How to read this document](#1-how-to-read-this-document)
-2. [Part A — Idealized reactor and biology as differential equations](#2-part-a--idealized-reactor-and-biology-as-differential-equations)
-3. [Part B — Two descriptions: conservative totals versus species concentrations](#3-part-b--two-descriptions-conservative-totals-versus-species-concentrations)
-4. [Part C — Acid–base reactions and the algebraic speciation layer](#4-part-c--acidbase-reactions-and-the-algebraic-speciation-layer)
-5. [Part D — Alkalinity, electroneutrality, and the charge-balance closure](#5-part-d--alkalinity-electroneutrality-and-the-charge-balance-closure)
-6. [Part E — Temperature: van’t Hoff, Arrhenius-style factors, and Henry correlations](#6-part-e--temperature-van’t-hoff-arrhenius-style-factors-and-henry-correlations)
-7. [Part F — Gas–liquid transfer (Henry's law, k\_La, volatile species)](#7-part-f--gasliquid-transfer-henrys-law-k_la-volatile-species)
-8. [Part G — Differential–algebraic structure and nested solvers](#8-part-g--differentialalgebraic-structure-and-nested-solvers)
-9. [Part H — Condensing the theory into code](#9-part-h--condensing-the-theory-into-code)
-10. [Part I — Verification, tests, and further reading](#10-part-i--verification-tests-and-further-reading)
-11. [Appendix: proton inventory vs SI.6 pH](#appendix-proton-inventory-vs-si6-ph)
+1. [How to read this document](#section-1)
+2. [Part A — Idealized reactor and biology as differential equations](#section-2)
+3. [Part B — Two descriptions: conservative totals versus species concentrations](#section-3)
+4. [Part C — Acid–base reactions and the algebraic speciation layer](#section-4)
+5. [Part D — Alkalinity, electroneutrality, and the charge-balance closure](#section-5)
+6. [Part E — Temperature: van’t Hoff, Arrhenius-style factors, and Henry correlations](#section-6)
+7. [Part F — Gas–liquid transfer (Henry's law, k\_La, volatile species)](#section-7)
+8. [Part G — Differential–algebraic structure and nested solvers](#section-8)
+9. [Part H — Condensing the theory into code](#section-9)
+10. [Part I — Verification, tests, and further reading](#section-10)
+11. [Appendix: proton inventory vs SI.6 pH](#section-appendix)
 
 ---
+
+<a id="section-1"></a>
 
 ## 1. How to read this document
 
@@ -37,6 +39,8 @@ This document explains, in textbook style, how **biology** (slow accumulation of
 - Map concepts to the intended module [`src/bioprocess_twin/models/chemistry.py`](../src/bioprocess_twin/models/chemistry.py) (see [`ARCHITECTURE.md`](ARCHITECTURE.md)).
 
 ---
+
+<a id="section-2"></a>
 
 ## 2. Part A — Idealized reactor and biology as differential equations
 
@@ -91,6 +95,8 @@ $$
 with $\boldsymbol{\rho}_{\mathrm{extended}}$ including biological and gas-transfer rates, **or** equivalently the gas terms are added to the RHS alongside $\mathbf{S}^\top \boldsymbol{\rho}_{1:19}$. The distinction is bookkeeping; the physics is the same.
 
 ---
+
+<a id="section-3"></a>
 
 ## 3. Part B — Two descriptions: conservative totals versus species concentrations
 
@@ -162,6 +168,8 @@ When $K_a$ is expressed in $\mathrm{M}$ but $\mathrm{[H^+]}$ is in $\mathrm{mol\
 Together, the system is a **differential–algebraic equation (DAE)** system. [`ADR 003`](adrs/003-dae-resolution-strategy.md) records the repository decision to use a **nested** algebraic solve for pH inside the ODE right-hand side rather than a fully coupled DAE integrator.
 
 ---
+
+<a id="section-4"></a>
 
 ## 4. Part C — Acid–base reactions and the algebraic speciation layer
 
@@ -275,6 +283,8 @@ Row 14 of Table SI.6.1 writes $[\mathrm{OH^-}]$ in terms of $K_w$, $\mathrm{[H^+
 
 ---
 
+<a id="section-5"></a>
+
 ## 5. Part D — Alkalinity, electroneutrality, and the charge-balance closure
 
 ### 5.1 Electroneutrality
@@ -324,6 +334,8 @@ If $\Delta \mathrm{CAT_{AN}}$ is wrong, the implied pH is wrong even with perfec
 
 ---
 
+<a id="section-6"></a>
+
 ## 6. Part E — Temperature: van’t Hoff, Arrhenius-style factors, and Henry correlations
 
 ### 6.1 van’t Hoff equation for $K_a(T)$
@@ -345,6 +357,8 @@ $$
 with $T_{\mathrm{K}} = T + 273.15$ for $T$ in °C as written in the SI file (Equation SI.6.4).
 
 **Implementation note:** Each acid–base pair has its own $\Delta H^\circ$ in a full compilation; the repository should source those values consistently with the chosen $K_{a,T_{\mathrm{ref}}}$ baseline.
+
+**Repository note:** Default standard reaction enthalpies ΔH° (infinite dilution, ~298.15 K, 1 bar), their literature/database lineage, and the caveat about matching the reference temperature for K_a to the enthalpy baseline are summarized in [`notes/aqueous-acid-base-reaction-enthalpies.md`](notes/aqueous-acid-base-reaction-enthalpies.md). The same numbers are exposed in code via `default_dissociation_enthalpy_j_per_mol()` in [`src/bioprocess_twin/models/chemistry.py`](../src/bioprocess_twin/models/chemistry.py).
 
 ### 6.2 Arrhenius law and the $\theta^{T-20}$ shorthand
 
@@ -380,6 +394,8 @@ Both depend on $T$; they enter **different places** in SI.7.2.
 Biological **growth** uses the **Cardinal Temperature Model with Inflection (CTMI)** $f_T$ in [`MATH_MODEL.md`](MATH_MODEL.md) §3.1 — a **non-Arrhenius** shape with $T_{\min}, T_{\mathrm{opt}}, T_{\max}$. This is unrelated to $K_a(T)$; keeping the layers separate avoids mixing “physiology” with “thermodynamic equilibrium.”
 
 ---
+
+<a id="section-7"></a>
 
 ## 7. Part F — Gas–liquid transfer (Henry's law, k\_La, volatile species)
 
@@ -466,6 +482,8 @@ Equations SI.7.3–SI.7.5 give $H_{\mathrm{O_2}}(T)$, $H_{\mathrm{CO_2}}(T)$, an
 
 ---
 
+<a id="section-8"></a>
+
 ## 8. Part G — Differential–algebraic structure and nested solvers
 
 ### 8.1 Formal split
@@ -517,6 +535,8 @@ flowchart LR
 
 ---
 
+<a id="section-9"></a>
+
 ## 9. Part H — Condensing the theory into code
 
 ### 9.1 Module boundary
@@ -554,6 +574,8 @@ Analytic derivative $\mathrm{d}F/\mathrm{d}\mathrm{[H^+]}$ improves convergence 
 
 ---
 
+<a id="section-10"></a>
+
 ## 10. Part I — Verification, tests, and further reading
 
 ### 10.1 Unit tests (conceptual checklist)
@@ -572,6 +594,8 @@ See [`docs/development/TESTING.md`](development/TESTING.md) for project test com
 - **ALBA:** Casagli et al. (2021) — [`REFERENCES.md`](REFERENCES.md).
 
 ---
+
+<a id="section-appendix"></a>
 
 ## Appendix: proton inventory vs SI.6 pH
 
