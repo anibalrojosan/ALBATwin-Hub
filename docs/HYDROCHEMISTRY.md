@@ -1,6 +1,6 @@
 # HydroChemistry in the ALBA Digital Twin
 
-**Pedagogical companion** to the normative model specification in [`MATH_MODEL.md`](MATH_MODEL.md), the supplementary tables [`SI.6`](supporting_informations/SI.6%20Explicit%20chemical%20equilibria%2C%20their%20dissociation%20constants%20with%20temperature%20dependence.md) (aqueous equilibria) and [`SI.7`](supporting_informations/SI.7%20Gas-liquid%20mass%20transfer.md) (gas–liquid transfer), and the architecture sketch in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+**Pedagogical companion** to the normative model specification in [`MATH_MODEL.md`](MATH_MODEL.md), the supplementary tables [`SI.6`](supporting_informations/SI.6%20Explicit%20chemical%20equilibria%2C%20their%20dissociation%20constants%20with%20temperature%20dependence.md) (aqueous equilibria) and [`SI.7`](supporting_informations/SI.7%20Gas-liquid%20mass%20transfer.md) (gas–liquid transfer), and the architecture sketch in [`ARCHITECTURE.md`](ARCHITECTURE.md). For the **ODE / RHS / time-integration** viewpoint (\(\mathrm{d}\mathbf{C}/\mathrm{d}t = \mathbf{S}^{\mathsf T}\boldsymbol{\rho}\), nested pH, simulators), see [`SIMULATOR_MATH.md`](SIMULATOR_MATH.md).
 
 **Primary literature:** Casagli et al. (2021), *Water Research* 190, 116734 (see [`REFERENCES.md`](REFERENCES.md)).
 
