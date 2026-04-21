@@ -557,6 +557,8 @@ flowchart LR
 - **`solve_pH(state)`** — given $\mathbf{C}$ and $T$, return $\mathrm{[H^+]}$ (or pH) satisfying SI.6 row 15.
 - **`calculate_gas_transfer(state, env_conditions, h_plus_mol_m3, theta_kla=..., gas_conditions=...)`** in [`gas_transfer.py`](../src/bioprocess_twin/models/gas_transfer.py) — returns $\rho_{20}$–$\rho_{22}$ aligned with Table SI.7.1. Pass **`h_plus_mol_m3`** from `solve_pH` (nested DAE, ADR 003).
 
+**Stage 5 implementation:** [`hydrochemistry_api.py`](../src/bioprocess_twin/models/hydrochemistry_api.py) exposes **`solve_pH_from_state`**, **`hydrochemistry_step`** (pH then gas in one call), and **`speciation_totals_from_state`**. SI.6 pH uses **`env.temperature_C`** only; **`EnvConditions.pH`** is not read there. Biological **`calculate_rates`** still uses **`EnvConditions.pH`** for cardinal pH modifiers until **Sprint 4** (orchestration) builds each step’s environment from the **solved** pH (or an explicit policy) alongside time-varying $T$ and irradiance (diel cycles).
+
 **Temperature conventions in code:** **`T_REF_CELSIUS_KLA = 20`** °C for $\theta^{T-20}$ scaling of **`k_L a`** (SI.7 / Ginot & Hervé style). **Henry SI.7.3–7.5** and $K_{a,\mathrm{ref}}$ use the **298.15 K** anchor (25 °C thermodynamic SSOT; see `chemistry.T_REF_K` and module docstring in `gas_transfer.py`). Do not conflate these two references.
 
 ### 9.2 Internal functions

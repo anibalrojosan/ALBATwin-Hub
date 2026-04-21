@@ -30,6 +30,12 @@ from bioprocess_twin.models.gas_transfer import (
     liquid_volatile_co2_gC_per_m3,
     liquid_volatile_nh3_gN_per_m3,
 )
+from bioprocess_twin.models.hydrochemistry_api import (
+    HydrochemistryStepResult,
+    hydrochemistry_step,
+    solve_pH_from_state,
+    speciation_totals_from_state,
+)
 from bioprocess_twin.models.kinetic_modifiers import (
     f_do_decay_hill,
     f_do_growth_hill,
@@ -47,6 +53,10 @@ from bioprocess_twin.models.kinetic_parameters import (
 from bioprocess_twin.models.kinetics import EnvConditions, calculate_rates
 
 __all__ = [
+    "HydrochemistryStepResult",
+    "hydrochemistry_step",
+    "solve_pH_from_state",
+    "speciation_totals_from_state",
     "GasTransferConditions",
     "GasTransferRates",
     "HenryConstantsGas",
