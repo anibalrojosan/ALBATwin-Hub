@@ -4,8 +4,9 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-20 - Sprint phase1-03: Stage 2 closure, thermodynamic alignment (T_ref 298.15 K), and Stage 3 pH solver](#2026-04-20---sprint-phase1-03-stage-2-closure-thermodynamic-alignment-t_ref-29815-k-and-stage-3-ph-solver)
 - [2026-04-19 - Sprint phase1-03: chemistry stage 1 and HYDROCHEMISTRY gas–liquid driving forces](#2026-04-19---sprint-phase1-03-chemistry-stage-1-and-hydrochemistry-gasliquid-driving-forces)
-- [2026-04-17 - Sprint phase1-03: HydroChemistry pedagogical doc (HYDROCHEMISTRY.md)](#2026-04-17---sprint-phase1-03-hydrochemistry-pedagogical-doc-hydrochemistrymd)
+- [2026-04-17 - Sprint phase1-03: Hydrochemistry pedagogical doc (HYDROCHEMISTRY.md)](#2026-04-17---sprint-phase1-03-hydrochemistry-pedagogical-doc-hydrochemistrymd)
 - [2026-04-17 - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit](#2026-04-17---sprint-2b-nineteen-process-rates-test-policy-and-ci-mass-balance-audit)
 - [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#2026-04-16---sprint-2b-kinetics-api-stub-ssot-parameters-and-algebraic-modifiers)
 - [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#2026-04-15---sprint-25a-stoichiometric-o-and-h-closure-layers-and-extended-statevector)
@@ -18,6 +19,32 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+
+---
+
+## [2026-04-20] - Sprint phase1-03: Stage 2 closure, thermodynamic alignment (T_ref 298.15 K), and Stage 3 pH solver
+
+### Context & Goals
+Complete the hydrochemistry path from Stage 2 (Speciation) to Stage 3 (pH solver), and align dissociation constants, reference temperature, and reaction enthalpies under a single thermodynamic convention to avoid 293 K / 298.15 K drift in van't Hoff scaling.
+
+### Technical Implementation
+- **`src/bioprocess_twin/models/chemistry.py` (Stage 2 — speciation):** subsystem helpers for ammonia, nitrite/nitrate, carbonates, phosphate, and water; **`speciate_aqueous`** and **`speciate_from_alba_totals`** assemble SI.6.1 rows 2–14 from totals and $[\mathrm{H}^+]$.
+- **`tests/unit/test_chemistry_stage2.py`:** mass closure per pool, acidic/basic limiting behaviour, one hand-checked carbonate case, and agreement between the ALBA-totals wrapper and the molar-totals path.
+- **`docs/HYDROCHEMISTRY.md` and `docs/notes/aqueous-acid-base-reaction-enthalpies.md`:** stable table-of-contents anchors for long-form navigation; consolidated note for standard reaction enthalpies $\Delta H^\circ$ (conditions and lineage) linked from HydroChemistry Part E.
+- **`src/bioprocess_twin/models/chemistry.py` (van’t Hoff baseline):** **`T_REF_K = 298.15 K`** so reference $K_a$ and $K_w$ from **MATH_MODEL.md** §1.2.7 share the same reference temperature as the tabulated $\Delta H^\circ$ bundle; docs clarify that SI.6.1’s ~293 K column is paper rounding, not the code SSOT for $K_{a,\mathrm{ref}}$.
+- **`src/bioprocess_twin/models/chemistry.py` (Stage 3 — charge balance and pH):** **`charge_residual`** for SI.6.1 row 15; **`solve_pH`** with Newton in $\log_{10}[\mathrm{H^+}]$, physical pH bounds, and bounded bracket fallback; **`ChargeBalanceInputs`**, **`PHSolverOptions`**, **`PHSolveResult`**, and **`PHSolveError`** for a typed solver surface.
+- **`tests/unit/test_chemistry_stage3.py`:** residual assembly vs manual row 15, convergence from different initial pH, fallback path, clear error when the bracket has no sign change, and a pinned regression case.
+- **`src/bioprocess_twin/models/__init__.py`:** exports for the new chemistry / pH-solver public API.
+- **`docs/HYDROCHEMISTRY.md` (Parts D, G, H):** maps the implemented Stage 3 API to the narrative (residual equation, nested-solver policy, internal-functions table).
+
+*Git trace (same day, chronological):* `07987fb` → `fd4c503` → `b7a07fa` → `7389659`.
+
+### 💡 Deep Dive: Why Newton + bounded fallback
+Newton in log-space is fast in typical operating ranges, but can stall near flat derivatives or extreme compositions. The bounded fallback enforces physical pH limits and preserves a robust convergence path when Newton cannot guarantee progress.
+
+### Next Steps
+- Start **Stage 4** (gas-liquid transfer): implement Henry $O_2$/$CO_2$/$NH_3$ temperature correlations, `kLa` scaling terms, and SI.7-aligned transfer rates using Stage 3 pH/speciation outputs.
+- Add lightweight API-level smoke tests for Stage 3 entry points using project-facing state/env types before wiring to the full ODE RHS.
 
 ---
 
@@ -38,7 +65,7 @@ Continue **phase1-03 (HydroChemistry / pH–DAE path)** with runnable reference 
 
 ---
 
-## [2026-04-17] - Sprint phase1-03: HydroChemistry pedagogical doc (HYDROCHEMISTRY.md)
+## [2026-04-17] - Sprint phase1-03: Hydrochemistry pedagogical doc (HYDROCHEMISTRY.md)
 
 ### Context & Goals
 Support **`phase1-03: HydroChemistry Module and pH Solver (DAE)`** with a long-form, university-style guide that connects reactor biology, SI.6 aqueous equilibria, SI.7 gas transfer, temperature effects, and the nested DAE strategy (**ADR 003**) to an implementation map without duplicating full parameter tables in `MATH_MODEL.md`.

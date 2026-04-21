@@ -27,6 +27,7 @@ M_C = 12.0
 M_N = 14.0
 M_P = 31.0
 
+# --- Stage 1: foundations and unit conventions ---
 
 @dataclass(frozen=True, slots=True)
 class AlbaDissociationConstantsRef:
@@ -373,7 +374,7 @@ def speciate_from_alba_totals(
     return speciate_aqueous(h_plus_mol_per_m3, totals, k)
 
 
-# --- Stage 3: charge balance and pH solve (SI.6.1 row 15) ---
+# --- Stage 3: charge balance and pH solver (SI.6.1 row 15) ---
 
 
 class PHSolveError(RuntimeError):

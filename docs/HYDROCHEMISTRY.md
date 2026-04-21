@@ -555,9 +555,9 @@ flowchart LR
 [`ARCHITECTURE.md`](ARCHITECTURE.md) assigns:
 
 - **`solve_pH(state)`** — given $\mathbf{C}$ and $T$, return $\mathrm{[H^+]}$ (or pH) satisfying SI.6 row 15.
-- **`calculate_gas_transfer(state, env_conditions)`** — return contributions aligned with $\rho_{20}$–$\rho_{22}$ / Table SI.7.1.
+- **`calculate_gas_transfer(state, env_conditions, h_plus_mol_m3, theta_kla=..., gas_conditions=...)`** in [`gas_transfer.py`](../src/bioprocess_twin/models/gas_transfer.py) — returns $\rho_{20}$–$\rho_{22}$ aligned with Table SI.7.1. Pass **`h_plus_mol_m3`** from `solve_pH` (nested DAE, ADR 003).
 
-The exact signature will follow the project’s `StateVector` / `EnvConditions` types under [`src/bioprocess_twin`](../src/bioprocess_twin/).
+**Temperature conventions in code:** **`T_REF_CELSIUS_KLA = 20`** °C for $\theta^{T-20}$ scaling of **`k_L a`** (SI.7 / Ginot & Hervé style). **Henry SI.7.3–7.5** and $K_{a,\mathrm{ref}}$ use the **298.15 K** anchor (25 °C thermodynamic SSOT; see `chemistry.T_REF_K` and module docstring in `gas_transfer.py`). Do not conflate these two references.
 
 ### 9.2 Internal functions
 
@@ -568,9 +568,10 @@ The exact signature will follow the project’s `StateVector` / `EnvConditions` 
 | Speciation | `speciate(h_plus, totals, constants)` | Implement Table SI.6.1 rows 2, 4, 6, 8–9, 11–13, 14. |
 | Charge residual | `charge_residual(h_plus, inputs)` | SI.6 row 15 including $\Delta \mathrm{CAT_{AN}}$ as a parameter or state field. |
 | Root find | `solve_pH(inputs, initial_ph, options)` | Newton in $\log_{10}\mathrm{[H^+]}$ with bounded fallback for robustness. |
-| Henry | `henry_constants_o2_co2_nh3(T_celsius)` | SI.7.3–SI.7.5. |
-| $k_La$ scale | `kla_effective(j, kla_o2_ref, T, theta)` | $\theta^{T-20}$ and $(D_j/D_{\mathrm{O_2}})^{1/2}$. |
-| Rates | `gas_transfer_rates(state, h_plus, T, p_gas, kla_o2)` | Table SI.7.1 driving forces. |
+| Henry | `henry_o2_co2_nh3(T_celsius)` | SI.7.3–SI.7.5 (`HenryConstantsGas`). |
+| $k_La$ scale | `kinetic_kla_factor`, `effective_kla_o2_per_day`, `diffusivity_ratio_sqrt_co2` / `_nh3` | $\theta^{T-20}$ ref. **20 °C**; $(D_j/D_{\mathrm{O_2}})^{1/2}$ from MATH_MODEL §1.2.6. |
+| Volatile fractions | `liquid_volatile_co2_gC_per_m3`, `liquid_volatile_nh3_gN_per_m3` | SI.6.1 rows 8–9 and 2 (full carbonate / ammonia speciation). |
+| Rates | `calculate_gas_transfer` | Table SI.7.1; optional `GasTransferConditions` (defaults from §1.2.6). |
 
 ### 9.3 Units checklist
 

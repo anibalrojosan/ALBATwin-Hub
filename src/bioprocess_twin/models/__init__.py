@@ -16,6 +16,20 @@ from bioprocess_twin.models.chemistry import (
     speciate_aqueous,
     speciate_from_alba_totals,
 )
+from bioprocess_twin.models.gas_transfer import (
+    T_REF_CELSIUS_KLA,
+    GasTransferConditions,
+    GasTransferRates,
+    HenryConstantsGas,
+    calculate_gas_transfer,
+    diffusivity_ratio_sqrt_co2,
+    diffusivity_ratio_sqrt_nh3,
+    effective_kla_o2_per_day,
+    henry_o2_co2_nh3,
+    kinetic_kla_factor,
+    liquid_volatile_co2_gC_per_m3,
+    liquid_volatile_nh3_gN_per_m3,
+)
 from bioprocess_twin.models.kinetic_modifiers import (
     f_do_decay_hill,
     f_do_growth_hill,
@@ -33,6 +47,18 @@ from bioprocess_twin.models.kinetic_parameters import (
 from bioprocess_twin.models.kinetics import EnvConditions, calculate_rates
 
 __all__ = [
+    "GasTransferConditions",
+    "GasTransferRates",
+    "HenryConstantsGas",
+    "T_REF_CELSIUS_KLA",
+    "calculate_gas_transfer",
+    "diffusivity_ratio_sqrt_co2",
+    "diffusivity_ratio_sqrt_nh3",
+    "effective_kla_o2_per_day",
+    "henry_o2_co2_nh3",
+    "kinetic_kla_factor",
+    "liquid_volatile_co2_gC_per_m3",
+    "liquid_volatile_nh3_gN_per_m3",
     "AlbaDissociationConstantsRef",
     "AlbaDissociationEnthalpy",
     "AqueousSpeciesMolar",
