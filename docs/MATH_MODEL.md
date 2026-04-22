@@ -232,6 +232,8 @@ The **18th** component is $S_{H\_PROTON}$ (g H·m⁻³, free-proton pool), appen
 
 ## 3. Algebraic Sub-models
 
+For an extended, textbook-style treatment of **aqueous speciation**, **charge balance / alkalinity**, **temperature laws** (van’t Hoff, $\theta^{T-20}$), **gas–liquid transfer** (Henry, $k_La$), and how these layers fit the **DAE** strategy in code, see **[`HYDROCHEMISTRY.md`](HYDROCHEMISTRY.md)**. For the same material oriented toward **ODEs**, the **RHS** \(\mathbf{f}(\mathbf{C},t,\mathbf{u})\), the **Petersen assembly** \(\mathbf{S}^{\mathsf T}\boldsymbol{\rho}\), and **time integration**, see **[`SIMULATOR_MATH.md`](SIMULATOR_MATH.md)**. Those documents are pedagogical; this section and the SI excerpts remain the **normative** parameter and equation references.
+
 ### 3.1 Temperature Dependence ($f_T$)
 *   **Growth:** Uses CTMI Model (Rosso et al., 1993).
     $$ f_T(T) = \frac{(T-T_{max})(T-T_{min})^2}{(T_{opt}-T_{min})[(T_{opt}-T_{min})(T-T_{opt}) - (T_{opt}-T_{max})(T_{opt}+T_{min}-2T)]} $$

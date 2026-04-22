@@ -4,20 +4,189 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
-- [2026-04-17 - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit](#2026-04-17---sprint-2b-nineteen-process-rates-test-policy-and-ci-mass-balance-audit)
-- [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#2026-04-16---sprint-2b-kinetics-api-stub-ssot-parameters-and-algebraic-modifiers)
-- [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#2026-04-15---sprint-25a-stoichiometric-o-and-h-closure-layers-and-extended-statevector)
-- [2026-03-31 - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)](#2026-03-31---sprint-2-deepresearch-and-explicit-oh-balance-rho14-alba-vs-asm)
-- [2026-03-30 - Sprint 2: Mass Balance Cell Diagnostics and SI Alignment Checkpoint](#2026-03-30---sprint-2-mass-balance-cell-diagnostics-and-si-alignment-checkpoint)
-- [2026-03-19 - Sprint 2: Petersen Matrix and Stoichiometry (Mass Balance Verification)](#2026-03-19---sprint-2-petersen-matrix-and-stoichiometry-mass-balance-verification)
-- [2026-03-17 - Sprint 1: Implementation of State Vector](#2026-03-17---sprint-1-implementation-of-state-vector)
-- [2026-03-16 - Sprint 1: Implementation of Reactor Configuration](#2026-03-16---sprint-1-implementation-of-reactor-configuration)
-- [2026-03-13 - Sprint 0: CI/CD and Infrastructure Setup](#2026-03-13---sprint-0-cicd-and-infrastructure-setup)
-- [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#2026-03-12---phase-1-technical-specification--architecture-definition)
-- [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#2026-03-12---phase-1-alba-model-analysis--data-digitization)
-- [2026-03-10 - Phase 0: Project Initialization and Foundation](#2026-03-10---phase-0-project-initialization-and-foundation)
+- [2026-04-21 - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH](#devlog-20260421-simulator-math)
+- [2026-04-20 - Sprint phase1-03: Stages 2-5: speciation, T_ref 298.15 K, pH solver, SI.7 gas transfer, simulator API](#devlog-20260420-p103-stages-2-5)
+- [2026-04-19 - Sprint phase1-03: Stage 1 and Hydrochemistry gas–liquid driving forces](#devlog-20260419-p103-chemistry-stage1)
+- [2026-04-17 - Sprint phase1-03: Hydrochemistry documentation and implementation plan](#devlog-20260417-p103-hydrochemistry-doc)
+- [2026-04-17 - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit](#devlog-20260417-sprint2b-rates-ci)
+- [2026-04-16 - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers](#devlog-20260416-sprint2b-kinetics-stub)
+- [2026-04-15 - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector](#devlog-20260415-sprint25a-oh-closure)
+- [2026-03-31 - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)](#devlog-20260331-sprint2-deepresearch-oh)
+- [2026-03-30 - Sprint 2: Mass Balance Cell Diagnostics and SI Alignment Checkpoint](#devlog-20260330-sprint2-mass-balance-diag)
+- [2026-03-19 - Sprint 2: Petersen Matrix and Stoichiometry (Mass Balance Verification)](#devlog-20260319-sprint2-petersen)
+- [2026-03-17 - Sprint 1: Implementation of State Vector](#devlog-20260317-sprint1-state-vector)
+- [2026-03-16 - Sprint 1: Implementation of Reactor Configuration](#devlog-20260316-sprint1-reactor-config)
+- [2026-03-13 - Sprint 0: CI/CD and Infrastructure Setup](#devlog-20260313-sprint0-cicd)
+- [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#devlog-20260312-phase1-spec-arch)
+- [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#devlog-20260312-phase1-alba-digitization)
+- [2026-03-10 - Phase 0: Project Initialization and Foundation](#devlog-20260310-phase0-init)
 
 ---
+
+<a id="devlog-20260421-simulator-math"></a>
+
+## [2026-04-21] - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH, and doc cross-links
+
+### Context & Goals
+Complement the existing **chemistry–centric** story in **`HYDROCHEMISTRY.md`** and the **SSOT** in **`MATH_MODEL.md`** with a **dynamics–centric** document that makes explicit how the digital twin is meant to be read as an **ODE initial-value problem** ($\mathrm{d}\mathbf{C}/\mathrm{d}t$), how **$\mathbf{S}^{\mathsf T}\boldsymbol{\rho}$** assembles the **RHS**, how the **19 biological** processes and **$\rho_{20}$–$\rho_{22}$** (Table SI.3.1 *Equilibrium phase* + SI.7) fit the **22-row** layout, and how **speciation and pH** act as a **nested algebraic map** inside each RHS evaluation. Prepare readers and future **`simulation`/integrator** work for the same language used in code issues and Stage 6 wiring.
+
+### Technical Implementation
+- **Added [`docs/SIMULATOR_MATH.md`](../SIMULATOR_MATH.md)** (*Mathematics of the ALBA simulator: dynamics, the RHS, and the path to time integration*): control volume and lumped state; RHS $\mathbf{f}$ and **$\mathbf{S}^{\mathsf T}\boldsymbol{\rho}$**; **Part D** contrasting biological kinetics and gas–liquid fluxes; **Part E** on **algebraic coupling** (pH, composition of maps); **Part F** on discretization and solvers; scope boundaries; **appendices** (notation, glossary, **concept to module** map, worked micro-examples, positivity/sensitivity remarks, **RHS evaluation flow** diagram with anchors for stable navigation.
+- **`docs/HYDROCHEMISTRY.md` (intro):** one-line pointer to **`SIMULATOR_MATH.md`** for the **ODE / RHS / time-integration** viewpoint so chemistry readers know where the dynamics story lives.
+- **`docs/MATH_MODEL.md` (§3 Algebraic sub-models):** pointer to **`SIMULATOR_MATH.md`** for **ODEs, RHS, Petersen assembly, and time integration**, keeping §3 as normative for parameters while steering “how it moves in time” to the new companion.
+
+
+*Git trace (same day):* `6a97792`.
+
+### Next Steps
+- Stage 6: implement **22-process** RHS assembly (or **$\mathbf{S}$** extended per SI.3.1) and a **simulator module** that evaluates **pH** then **$\rho_{20}$–$\rho_{22}$** each RHS call, as anticipated in **`SIMULATOR_MATH.md`**; keep **MATH_MODEL** / **STOICHIOMETRY** in sync when code lands.
+
+---
+
+<a id="devlog-20260420-p103-stages-2-5"></a>
+
+## [2026-04-20] - Sprint phase1-03: Stages 2-5: speciation, T_ref 298.15 K, pH solver, SI.7 gas transfer, simulator API
+
+### Context & Goals
+Complete the hydrochemistry path from Stage 2 (Speciation) to Stage 3 (pH solver), and align dissociation constants, reference temperature, and reaction enthalpies under a single thermodynamic convention to avoid 293 K / 298.15 K drift in van't Hoff scaling. 
+
+Extend the same workstream with **Stage 4** numeric gas–liquid transfer (SI.7 / Table SI.7.1) using Stage-3 $[\mathrm{H}^+]$ and temperature-scaled $K_a$, without wiring $\rho_{20}$–$\rho_{22}$ into the ODE RHS yet. Add **Stage 5** simulator-facing facades over **`StateVector`** / **`EnvConditions`** so the future ODE RHS can call a thin API without duplicating SI.6 assembly.
+
+### Technical Implementation
+
+#### Stage 2 — speciation
+- **`src/bioprocess_twin/models/chemistry.py`:** 
+  - subsystem helpers for ammonia, nitrite/nitrate, carbonates, phosphate, and water; 
+  - **`speciate_aqueous`** and **`speciate_from_alba_totals`** assemble SI.6.1 rows 2–14 from totals and $[\mathrm{H}^+]$.
+- **`tests/unit/test_chemistry_stage2.py`:** 
+  - mass closure per pool, acidic/basic limiting behaviour, one hand-checked carbonate case, and agreement between the ALBA-totals wrapper and the molar-totals path.
+- **`docs/HYDROCHEMISTRY.md` and `docs/notes/aqueous-acid-base-reaction-enthalpies.md`:** 
+  - stable table-of-contents anchors for long-form navigation; 
+  - consolidated note for standard reaction enthalpies $\Delta H^\circ$ (conditions and lineage) linked from HydroChemistry Part E.
+- **`src/bioprocess_twin/models/chemistry.py` (van’t Hoff baseline):** 
+  - **`T_REF_K = 298.15 K`** so reference $K_a$ and $K_w$ from **MATH_MODEL.md** §1.2.7 share the same reference temperature as the tabulated $\Delta H^\circ$ bundle; 
+  - docs clarify that SI.6.1’s ~293 K column is paper rounding, not the code SSOT for $K_{a,\mathrm{ref}}$.
+
+#### Stage 3 — charge balance and pH
+- **`src/bioprocess_twin/models/chemistry.py`:** 
+  - **`charge_residual`** for SI.6.1 row 15; 
+  - **`solve_pH`** with Newton in $\log_{10}[\mathrm{H^+}]$, physical pH bounds, and bounded bracket fallback; 
+  - **`ChargeBalanceInputs`**, **`PHSolverOptions`**, **`PHSolveResult`**, and **`PHSolveError`** for a typed solver surface.
+- **`tests/unit/test_chemistry_stage3.py`:** 
+  - residual assembly vs manual row 15, convergence from different initial pH, fallback path, clear error when the bracket has no sign change, and a pinned regression case.
+- **`src/bioprocess_twin/models/__init__.py`:** 
+  - exports for the chemistry / pH-solver public API and, for Stage 4, gas-transfer types and helpers (**`HenryConstantsGas`**, **`GasTransferRates`**, **`calculate_gas_transfer`**, etc.).
+- **`docs/HYDROCHEMISTRY.md` (Parts D, G, H):** 
+  - maps the implemented Stage 3 API to the narrative (residual equation, nested-solver policy, internal-functions table).
+
+#### Stage 4 — SI.7 gas transfer
+- **`src/bioprocess_twin/models/gas_transfer.py`:** 
+  - **`henry_o2_co2_nh3`** (SI.7.3–7.5), 
+  - **`T_REF_CELSIUS_KLA`** and **`kinetic_kla_factor`** / **`effective_kla_o2_per_day`** for $\theta^{T-20}$ with **20 °C** as the $k_L a$ reference (distinct from the **298.15 K** anchor in Henry and **`scale_dissociation_constants_at_t`**); 
+  - diffusivity ratios $(D_j/D_{\mathrm{O_2}})^{1/2}$ from **MATH_MODEL.md** §1.2.6; 
+  - **`liquid_volatile_co2_gC_per_m3`** / **`liquid_volatile_nh3_gN_per_m3`** via **`speciate_carbonate`** / **`speciate_ammonia`** (SI.6–consistent volatile pools); 
+  - **`calculate_gas_transfer`** returns $\rho_{20}$–$\rho_{22}$ with optional **`GasTransferConditions`** (defaults from §1.2.6); 
+  - short line comments on the rate assembly in **`calculate_gas_transfer`** for readability.
+- **`tests/unit/test_gas_transfer.py`:** 
+  - O₂ row vs closed-form Table SI.7.1 at 20 °C; 
+  - CO₂ / NH₃ driving terms vs [$\mathrm{H}^+$]; 
+  - Henry $H(T)$ colder-vs-warmer check; 
+  - end-to-end **`calculate_gas_transfer`** sensitivity of $\rho_{22}$ to [$\mathrm{H}^+$].
+- **`docs/HYDROCHEMISTRY.md` (§9.1–9.2):** 
+  - documents the implemented **`calculate_gas_transfer`** signature (explicit **`h_plus_mol_m3`** from **`solve_pH`**), 
+  - renames the internal-function table to match code, and states the **20 °C** vs **298.15 K** reference split.
+- **`src/bioprocess_twin/models/hydrochemistry_api.py`:** 
+  - **`speciation_totals_from_state`** maps ALBA soluble totals to **`SpeciationTotals`**; 
+  - **`solve_pH_from_state`** builds **`ChargeBalanceInputs`** from **`StateVector`** + **`env.temperature_C`** (ignores **`env.pH`** for SI.6); 
+  - **`hydrochemistry_step`** returns **`HydrochemistryStepResult`** (**`PHSolveResult`** + **`GasTransferRates`**) by chaining **`solve_pH`** and **`calculate_gas_transfer`** with the solved **`h_plus_mol_m3`**.
+- **`tests/unit/test_hydrochemistry_api.py`:** 
+  - parity of **`solve_pH_from_state`** vs direct **`ChargeBalanceInputs`** (pinned stage-3 regression totals); 
+  - gas bundle vs manual **`calculate_gas_transfer`**; 
+  - **day vs night** **`EnvConditions`** snapshots (irradiance high vs zero, same $T$) with **`EnvConditions.pH`** aligned to solved pH before **`calculate_rates`**, asserting higher algal $\rho_1$ in daytime as preparation for **Sprint 4** time orchestration.
+- **`docs/HYDROCHEMISTRY.md` (§9.1):** 
+  - documents **`hydrochemistry_api.py`**, the split between **SI.6 solved pH** and **`EnvConditions.pH`** for cardinal kinetics until orchestration, and points to **Sprint 4** for time-varying $T$ / irradiance / RHS wiring.
+- **`src/bioprocess_twin/models/__init__.py`:** 
+  - exports **`solve_pH_from_state`**, **`hydrochemistry_step`**, **`HydrochemistryStepResult`**, **`speciation_totals_from_state`**.
+
+*Git trace (same day, chronological):* `07987fb` → `fd4c503` → `b7a07fa` → `7389659` → `230e1bf` → `0ad017c` *(Stages 2–5).*
+
+### 💡 Deep Dive: Why Newton + bounded fallback
+Newton in log-space is fast in typical operating ranges, but can stall near flat derivatives or extreme compositions. The bounded fallback enforces physical pH limits and preserves a robust convergence path when Newton cannot guarantee progress.
+
+### Next Steps
+- Wire $\rho_{20}$–$\rho_{22}$ from **`calculate_gas_transfer`** into the assembled liquid-phase RHS (and optionally extend **`get_petersen_matrix()`** or a parallel rate vector) once the integrator path is ready (**Sprint 4**): also integrate **dynamic pH** into each RHS evaluation, **diel** profiles for $T$ and irradiance, and **inflow/outflow + HRT** transport terms not covered in phase1-03.
+- Stage 5 **hydrochemistry_api** smoke path is covered by **`test_hydrochemistry_api.py`**; extend with integration tests when **`simulation.py`** exists.
+
+---
+
+<a id="devlog-20260419-p103-chemistry-stage1"></a>
+
+## [2026-04-19] - Sprint phase1-03: Stage 1 and Hydrochemistry gas–liquid driving forces
+
+### Context & Goals
+Continue **phase1-03 (Hydrochemistry / pH–DAE path)** with runnable reference code for SI.6 constants and temperature scaling, and deepen the pedagogical doc toward SI.7 mass-transfer language used in the twin.
+
+### Technical Implementation
+- **`src/bioprocess_twin/models/chemistry.py`:** 
+    - `R_GAS`, `T_REF_K`, reference $K_a$ from **MATH_MODEL.md** §1.2.7 (pK_a $\rightarrow$ mol/L), **`ka_at_T` / `kw_at_T`** per van’t Hoff **SI.6.4**, **`scale_dissociation_constants_at_t`**, and mol·m⁻³ helpers from ALBA totals $S_{\mathrm{IC}}$, $S_{\mathrm{NH}}$, nitrite/nitrate, $S_{\mathrm{PO4}}$. 
+    - Default **`AlbaDissociationEnthalpy`** uses **zero** $\Delta H^\circ$ as of now. I need to research those missing parameters.
+- **`tests/unit/test_chemistry_stage1.py`:** reference bundle, scaling API, conversion smoke checks.
+- **`docs/HYDROCHEMISTRY.md`:** new/extended material on gas–liquid driving force $\Delta = C^* - C^{\mathrm{liq}}$, Henry intuition, and alignment with **SI.7**.
+
+### Next Steps
+- Source $\Delta H^\circ$ per reaction consistently with chosen $K_{a,\mathrm{ref}}$ and $T_\mathrm{ref}$; wire chemistry into speciation / charge balance when the pH solver lands.
+
+---
+
+<a id="devlog-20260417-p103-hydrochemistry-doc"></a>
+
+## [2026-04-17] - Sprint phase1-03: Hydrochemistry documentation and implementation plan
+
+### Context & Goals
+Support **`phase1-03: Hydrochemistry Module and pH Solver (DAE)`** with a long-form, university-style guide that connects reactor biology, SI.6 aqueous equilibria, SI.7 gas transfer, temperature effects, and the nested DAE strategy (**ADR 003**) to an implementation map without duplicating full parameter tables in `MATH_MODEL.md`.
+
+### Technical Implementation
+- Added **[`docs/HYDROCHEMISTRY.md`](../HYDROCHEMISTRY.md)**: Parts A - I cover ODE state/totals, speciation and unit factors $10^3$/$10^6$, charge balance and alkalinity intuition, van’t Hoff vs $\theta^{T-20}$ vs Henry correlations, SI.7 driving forces, mermaid flow aligned with `ARCHITECTURE.md`, code module boundaries, testing checklist, and an appendix contrasting **`S_H_PROTON`** (ADR 007 audit) with SI.6 pH.
+- Linked **`MATH_MODEL.md` §3** to **`HYDROCHEMISTRY.md`** as the pedagogical companion; SSOT tables remain in §1.2.6–1.2.7 and SI files.
+
+### Implementation Plan
+Due to the complexity of the Hydrochemistry module, I split the implementation into **six ordered stages**, each paired with **tests in the same stage** (ideally a failing test first, then code). Paths align with `src/bioprocess_twin/models/chemistry.py`, `gas_transfer.py`, and `tests/unit/test_chemistry_stage{1,2,3}.py`, `test_gas_transfer.py`. Brief scope per stage:
+- **Stage 1 — Foundations and units:** 
+     - Reference $pK_a$ / $K_a$ at $T_\mathrm{ref}$, $R$, $10^3$/$10^6$ factors, elemental weights (12, 14, 31); **`ka_at_T`** / **`kw_at_T`** (van’t Hoff, SI.6.4); 
+     - mol-per-volume helpers from ALBA totals (e.g. $S_\mathrm{IC}/12$, $S_\mathrm{NH}/14$). 
+     - *Tests:* $K_a(T)$ vs hand/SI reference at two temperatures; mass–mole conversion smoke checks.
+- **Stage 2 — Speciation (SI.6.1 rows 2–14):** 
+     - Given $[\mathrm{H}^+]$, $T$, and totals, return molar species concentrations; 
+     - subsystem helpers + **`speciate_aqueous`** / **`speciate_from_alba_totals`**. 
+     - *Tests:* mass closure per total pool; acidic/basic limiting fractions; one hand-checked multi-species case (e.g. carbonates).
+- **Stage 3 — Charge balance and `solve_pH`:** 
+     - Assemble SI.6.1 row 15 in **`charge_residual`**; 
+     - **`solve_pH`** (Newton in $\log_{10}[\mathrm{H^+}]$ with bounded fallback); 
+     - **`delta_cat_an`** (or agreed name). 
+     - *Tests:* buffer/mixture vs expected pH; convergence from varied initial $[\mathrm{H}^+]$; robustness / clear errors for pathological cases.
+- **Stage 4 — Gas–liquid transfer (SI.7):** 
+     - **`calculate_gas_transfer`** and Table SI.7.1; 
+     - **`henry_o2_co2_nh3`**, $\theta^{T-20}$ on $k_L a$ (20 °C reference), $(D_j/D_{\mathrm{O_2}})^{1/2}$; 
+     - three rates using Stage-3 $[\mathrm{H}^+]$ for volatile $\mathrm{CO_2}$ / $\mathrm{NH_3}$ fractions. 
+     - *Tests:* $O_2$ row closed form; $CO_2$/$NH_3$ driving force vs pH; $H(T)$ trend vs SI correlations.
+- **Stage 5 — Thin simulator-facing API:** 
+     - Stable facades (**`solve_pH`**, gas-transfer entry points) over **`StateVector`** / **`EnvConditions`** without forcing a full Petersen extension yet; 
+     - optional smoke on a minimal synthetic state. 
+     - *Tests:* light integration reusing Stage 3–4 numerics through project types.
+- **Stage 6 — ODE hook-up:** 
+     - Place $\rho_{20}$–$\rho_{22}$ in $\mathrm{d}\mathbf{C}/\mathrm{d}t$ when the $S$ / RHS design is ready; 
+     - verify signs and mass sense on $S_\mathrm
+
+### 💡 Deep Dive: Why a separate HydroChemistry narrative
+The SSOT is optimized for **implementation lookup**; newcomers need a **single storyline** from control volume → $\mathbf{S}^\top\boldsymbol{\rho}$ → totals vs species → electroneutrality → nested Newton inside the ODE RHS. Centralizing that narrative reduces duplication in issues and onboarding without changing stoichiometric norms.
+
+### Next Steps
+- Implement **`src/bioprocess_twin/models/chemistry.py`**; extend with speciation, $\Delta H^\circ$ sources, and pH solver integration.
+- Wire $\rho_{20}$–$\rho_{22}$ into the simulation RHS when the gas-transfer workstream extends `get_petersen_matrix()` or equivalent assembly.
+
+---
+
+<a id="devlog-20260417-sprint2b-rates-ci"></a>
 
 ## [2026-04-17] - Sprint 2B: Nineteen process rates, test policy, and CI mass-balance audit
 
@@ -47,12 +216,15 @@ Elemental closure on the **literal** Casagli SI block is a **policy and modeling
 
 ---
 
+<a id="devlog-20260416-sprint2b-kinetics-stub"></a>
+
 ## [2026-04-16] - Sprint 2B: Kinetics API stub, SSOT parameters, and algebraic modifiers
 
 ### Context & Goals
 Continue **`phase1-02B: BioKinetics`** on branch `feat/biokinetics-rates`: align documentation with ALBA supplementary material, expose a stable **`calculate_rates`** entry point (still returning zeros until full $\boldsymbol{\rho}$ wiring), central kinetic constants from `docs/MATH_MODEL.md` §1.2 and pure **modifier** functions for §3 (temperature, pH, light, DO).
 
 ### Technical Implementation
+- **Mass-balance documentation layout (PR #13, `e8cc2df`):** Moved narratives under **`docs/mass_balances/guides/`** and case studies; generated **114-cell** audits under **`docs/mass_balances/artifacts/`**; **`scripts/generate_mass_balances_md.py`** writes to **artifacts**; hub **`docs/MASS_BALANCES.md`**; **`MATH_MODEL.md`** / **`STOICHIOMETRY.md`** updates for closure modes and SI rows 20–22; **ADR 007** and cross-links refreshed.
 - **Documentation & SI layout:** Added/relocated ALBA supporting markdown and figures under `docs/supporting_informations/`; updated `docs/MATH_MODEL.md` (SSOT from SI.5, links to SI.6/SI.7, clarifications); stoichiometry docstrings now point SI.3 references at the new paths (`f8e80ab`).
 - **`src/bioprocess_twin/models/kinetics.py`:** Introduced `EnvConditions` and `calculate_rates(state, env, n_processes=19)` returning a **19-vector of zeros** (contract for Paso 4); normalization for 17 vs 18 state components as in Paso 1 (`0a589bf`).
 - **`src/bioprocess_twin/models/kinetic_parameters.py`:** Frozen Pydantic `KineticParameters` with nested `CardinalTemperature` / `CardinalPH`; factory `default_alba()` with nominal §1.2 values (midpoints where ranges use “±”); explicit **`k_a`** for urea / $S_{\mathrm{ND}}$ kinetics (`15450b0`).
@@ -64,11 +236,13 @@ Continue **`phase1-02B: BioKinetics`** on branch `feat/biokinetics-rates`: align
 `KineticParameters` holds **rates, half-saturation constants, $\theta$ factors, and cardinals** for use in $\rho_i$ expressions; **`stoichiometry.py`** remains the home for **Petersen `S`** and composition **`I`**. Keeping them separate avoids duplicating yields/composition (§1.1).
 
 ### Next Steps
-- Implement the **19 process rates** in `calculate_rates` (Monod/Liebig, inhibition, modifiers), using `default_alba()` and `kinetic_modifiers`, per §4 and `MATH_MODEL.md#biological-kinetics`.
+- ~~Implement the **19 process rates** in `calculate_rates`~~ **Delivered** 2026-04-17 (`e2e362c` / `58f3dc4`); next: wire **ODE RHS** to `calculate_rates` and `S^\top\boldsymbol{\rho}` with chosen `closure_mode`.
 - Optional: smoke test importing kinetics + modifiers from the integrator path.
 - Note: strict **`S @ I.T`** mass-balance tests on literal SI rows still show large **O/H** residuals for bacterial processes (known from ADR 007 / closure work); closing the twin loop does not depend on relaxing that audit, but simulation should use **`get_petersen_matrix_for_simulation(closure_mode=...)`** when O/H-closed `S` is required.
 
 ---
+
+<a id="devlog-20260415-sprint25a-oh-closure"></a>
 
 ## [2026-04-15] - Sprint 2.5A: Stoichiometric O and H closure layers and extended StateVector
 
@@ -111,6 +285,8 @@ For each process row, once all **non-water** species fix $L_i$ (oxygen in explic
 
 ---
 
+<a id="devlog-20260331-sprint2-deepresearch-oh"></a>
+
 ## [2026-03-31] - Sprint 2: DeepResearch and Explicit O/H Balance (rho14, ALBA vs ASM)
 
 ### Context & Goals
@@ -130,6 +306,8 @@ The test enforces $\sum_j S_{i,j} I_{k,j} \approx 0$ for every process $i$ and e
 - Cross-check any proposed coefficients against Casagli SI and primary references before merging.
 
 ---
+
+<a id="devlog-20260330-sprint2-mass-balance-diag"></a>
 
 ## [2026-03-30] - Sprint 2: Mass Balance Cell Diagnostics and SI Alignment Checkpoint
 
@@ -151,6 +329,8 @@ A single `np.allclose` on `S @ I.T` hides which **process–element** pairs fail
 - Same as follow-up from mass balance investigation: resolve O/H (and remaining COD) closure policy.
 
 ---
+
+<a id="devlog-20260319-sprint2-petersen"></a>
 
 ## [2026-03-19] - Sprint 2: Petersen Matrix and Stoichiometry (Mass Balance Verification)
 
@@ -189,6 +369,8 @@ In other words, the sum of the products of the stoichiometric coefficients and t
 
 ---
 
+<a id="devlog-20260317-sprint1-state-vector"></a>
+
 ## [2026-03-17] - Sprint 1: Implementation of State Vector
 
 ### Context & Goals
@@ -219,6 +401,8 @@ In large-scale models like ALBA (17 variables), managing array indices manually 
 
 ---
 
+<a id="devlog-20260316-sprint1-reactor-config"></a>
+
 ## [2026-03-16] - Sprint 1: Implementation of Reactor Configuration
 
 ### Context & Goals
@@ -248,6 +432,8 @@ In a complex bioprocess simulation, maintaining the integrity of physical consta
 
 ---
 
+<a id="devlog-20260313-sprint0-cicd"></a>
+
 ## [2026-03-13] - Sprint 0: CI/CD and Infrastructure Setup
 
 ### Context & Goals
@@ -270,6 +456,8 @@ A "Modular Monolith" approach was chosen over separating backend and frontend re
 - Develop the initial unit tests for the reactor geometry and the initial state vector.
 
 ---
+
+<a id="devlog-20260312-phase1-spec-arch"></a>
 
 ## [2026-03-12] - Phase 1: Technical Specification & Architecture Definition
 
@@ -303,6 +491,8 @@ Bioprocess models are notoriously "stiff" because they couple phenomena occurrin
 
 ---
 
+<a id="devlog-20260312-phase1-alba-digitization"></a>
+
 ## [2026-03-12] - Phase 1: ALBA Model Analysis & Data Digitization
 
 ### Context & Goals
@@ -323,6 +513,8 @@ Transcribing mathematical models from academic papers to code is a critical step
 - Review how to translatate this mathematical expressions into Python code.
 
 ---
+
+<a id="devlog-20260310-phase0-init"></a>
 
 ## 2026-03-10 - Phase 0: Project Initialization and Foundation
 
