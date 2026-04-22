@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-21 - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH](#devlog-20260421-simulator-math)
 - [2026-04-20 - Sprint phase1-03: Stages 2-5: speciation, T_ref 298.15 K, pH solver, SI.7 gas transfer, simulator API](#devlog-20260420-p103-stages-2-5)
 - [2026-04-19 - Sprint phase1-03: Stage 1 and Hydrochemistry gas–liquid driving forces](#devlog-20260419-p103-chemistry-stage1)
 - [2026-04-17 - Sprint phase1-03: Hydrochemistry documentation and implementation plan](#devlog-20260417-p103-hydrochemistry-doc)
@@ -19,6 +20,26 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#devlog-20260312-phase1-spec-arch)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#devlog-20260312-phase1-alba-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#devlog-20260310-phase0-init)
+
+---
+
+<a id="devlog-20260421-simulator-math"></a>
+
+## [2026-04-21] - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH, and doc cross-links
+
+### Context & Goals
+Complement the existing **chemistry–centric** story in **`HYDROCHEMISTRY.md`** and the **SSOT** in **`MATH_MODEL.md`** with a **dynamics–centric** document that makes explicit how the digital twin is meant to be read as an **ODE initial-value problem** ($\mathrm{d}\mathbf{C}/\mathrm{d}t$), how **$\mathbf{S}^{\mathsf T}\boldsymbol{\rho}$** assembles the **RHS**, how the **19 biological** processes and **$\rho_{20}$–$\rho_{22}$** (Table SI.3.1 *Equilibrium phase* + SI.7) fit the **22-row** layout, and how **speciation and pH** act as a **nested algebraic map** inside each RHS evaluation. Prepare readers and future **`simulation`/integrator** work for the same language used in code issues and Stage 6 wiring.
+
+### Technical Implementation
+- **Added [`docs/SIMULATOR_MATH.md`](../SIMULATOR_MATH.md)** (*Mathematics of the ALBA simulator: dynamics, the RHS, and the path to time integration*): control volume and lumped state; RHS $\mathbf{f}$ and **$\mathbf{S}^{\mathsf T}\boldsymbol{\rho}$**; **Part D** contrasting biological kinetics and gas–liquid fluxes; **Part E** on **algebraic coupling** (pH, composition of maps); **Part F** on discretization and solvers; scope boundaries; **appendices** (notation, glossary, **concept to module** map, worked micro-examples, positivity/sensitivity remarks, **RHS evaluation flow** diagram with anchors for stable navigation.
+- **`docs/HYDROCHEMISTRY.md` (intro):** one-line pointer to **`SIMULATOR_MATH.md`** for the **ODE / RHS / time-integration** viewpoint so chemistry readers know where the dynamics story lives.
+- **`docs/MATH_MODEL.md` (§3 Algebraic sub-models):** pointer to **`SIMULATOR_MATH.md`** for **ODEs, RHS, Petersen assembly, and time integration**, keeping §3 as normative for parameters while steering “how it moves in time” to the new companion.
+
+
+*Git trace (same day):* `6a97792`.
+
+### Next Steps
+- Stage 6: implement **22-process** RHS assembly (or **$\mathbf{S}$** extended per SI.3.1) and a **simulator module** that evaluates **pH** then **$\rho_{20}$–$\rho_{22}$** each RHS call, as anticipated in **`SIMULATOR_MATH.md`**; keep **MATH_MODEL** / **STOICHIOMETRY** in sync when code lands.
 
 ---
 
