@@ -22,6 +22,7 @@ This document explains, in **textbook depth**, the **ordinary differential equat
 12. [Appendix D — Worked micro-examples: oxygen, inorganic carbon, ammonium](#sim-appendix-d)
 13. [Appendix E — Extended remarks: positivity, invariants, and sensitivity](#sim-appendix-e)
 14. [Appendix F — RHS evaluation flow (reference diagram)](#sim-appendix-f)
+15. [Appendix F.1 — Stage 6 implementation in `liquid_rhs.py`](#sim-appendix-f-impl)
 
 ---
 
@@ -558,9 +559,11 @@ Each map in the pipeline (**totals** $\to$ **charge residual** $\to$ **pH** $\to
 |-----------------------|--------------------------------------------------------|
 | State $\mathbf{C}$, layout | [`src/bioprocess_twin/core/state.py`](../src/bioprocess_twin/core/state.py) (`StateVector`, `StateVectorVariant`) |
 | $\mathbf{S}_{\mathrm{bio}}$ (19×17) | [`src/bioprocess_twin/models/stoichiometry.py`](../src/bioprocess_twin/models/stoichiometry.py) (`get_petersen_matrix`) |
+| $\mathbf{S}_{\mathrm{gas}}$ (rows 20–22) and $\mathbf{S}_{\mathrm{full}}$ (22×17) | [`src/bioprocess_twin/models/stoichiometry.py`](../src/bioprocess_twin/models/stoichiometry.py) (`get_gas_transfer_matrix`, `get_petersen_matrix_with_gas_transfer`) |
 | Composition matrix $\mathbf{M}$ | [`stoichiometry.py`](../src/bioprocess_twin/models/stoichiometry.py) (`get_composition_matrix`) |
 | $\boldsymbol{\rho}_{\mathrm{bio}}$ | [`src/bioprocess_twin/models/kinetics.py`](../src/bioprocess_twin/models/kinetics.py) (`calculate_rates`, `EnvConditions`) |
-| $\boldsymbol{\rho}_{\mathrm{gas}}$, Henry, $k_La$ scaling | [`src/bioprocess_twin/models/gas_transfer.py`](../src/bioprocess_twin/models/gas_transfer.py) (`calculate_gas_transfer`) |
+| $\boldsymbol{\rho}_{\mathrm{gas}}$, Henry, k_La scaling | [`src/bioprocess_twin/models/gas_transfer.py`](../src/bioprocess_twin/models/gas_transfer.py) (`calculate_gas_transfer`) |
+| Stage 6 liquid RHS assembler | [`src/bioprocess_twin/simulator/liquid_rhs.py`](../src/bioprocess_twin/simulator/liquid_rhs.py) (`evaluate_liquid_rhs`, `AlbaLiquidRhsResult`) |
 | Speciation, charge residual, $\mathcal{H}$ | [`src/bioprocess_twin/models/chemistry.py`](../src/bioprocess_twin/models/chemistry.py) (`solve_pH`, helpers) |
 | Facade $\to$ pH + gas bundle | [`src/bioprocess_twin/models/hydrochemistry_api.py`](../src/bioprocess_twin/models/hydrochemistry_api.py) (`hydrochemistry_step`) |
 | Optional extended $\mathbf{S}$, closures | [`src/bioprocess_twin/models/stoichiometry_closure.py`](../src/bioprocess_twin/models/stoichiometry_closure.py) |
@@ -721,6 +724,44 @@ flowchart TD
 - **`Sfull` / `rhofull`** may be **constructed by concatenation** from existing `get_petersen_matrix()` and `calculate_gas_transfer()` outputs without storing a dense $22 \times 17$ matrix if only $\mathbf{S}^{\mathsf T}\boldsymbol{\rho}$ is needed.
 - **Transport** blocks (dilution, inflows) would appear as **parallel additions** to `rhs` when hydraulics are implemented.
 
+<a id="sim-appendix-f-impl"></a>
+
+### F.1 Stage 6 implementation in [`liquid_rhs.py`](../src/bioprocess_twin/simulator/liquid_rhs.py)
+
+The function **`evaluate_liquid_rhs`** implements one evaluation of the liquid-phase RHS: it does **not** advance time or sample a long horizon; a time integrator (Sprint 4 scope) would call it repeatedly. Internally it uses **`hydrochemistry_step`**, which chains SI.6 **solve pH** and SI.7 **gas transfer**; then it aligns **`EnvConditions.pH`** to the solved pH for **`calculate_rates`**, stacks **22** process rates, and forms **dC/dt** with the fixed **22×17** matrix from **`get_petersen_matrix_with_gas_transfer`**. (Diagnostics also run **`speciate_from_alba_totals`** for species reporting; that path is not drawn below.)
+
+```mermaid
+flowchart TD
+  subgraph inRhs [Inputs one call]
+    C["State C as StateVector"]
+    U["EnvConditions: T, pH nominal, I"]
+    G["GasTransferConditions optional"]
+  end
+
+  hc["hydrochemistry_step: pH + gas rates"]
+  C --> hc
+  U --> hc
+  G --> hc
+
+  alignEnv["EnvConditions: pH replaced by solved pH"]
+  hc --> alignEnv
+
+  rbio["calculate_rates: rho_bio length 19"]
+  C --> rbio
+  alignEnv --> rbio
+  rgas["rho_20-22 from step gas bundle"]
+  hc --> rgas
+
+  rhoFull["rho_full length 22: concat"]
+  rbio --> rhoFull
+  rgas --> rhoFull
+
+  sFull["S_full 22x17: get_petersen_matrix_with_gas_transfer"]
+  rhsNode["dC/dt 17: S_full transpose times rho_full"]
+  rhoFull --> rhsNode
+  sFull --> rhsNode
+```
+
 ---
 
-**Document status:** Pedagogical reference; equation and parameter numbers authoritative in **`MATH_MODEL.md`**. When Stage 6 lands in code, update Appendix C with the **simulator assembler** module path and any new **`N_PROCESSES`** convention.
+**Document status:** Pedagogical reference; equation and parameter numbers authoritative in **`MATH_MODEL.md`**. Stage 6 code now provides a simulator assembler path and a 22-process SI liquid RHS assembly while keeping biological-only APIs for backward compatibility.

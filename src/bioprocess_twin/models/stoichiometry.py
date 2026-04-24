@@ -43,6 +43,8 @@ S_S, S_I, S_IC, S_ND, S_NH, S_NO2, S_NO3, S_N2, S_PO4, S_O2, S_H2O = (
 
 N_STATE = 17
 N_PROCESSES = 19
+N_GAS_TRANSFER_PROCESSES = 3
+N_PROCESSES_WITH_GAS_TRANSFER = N_PROCESSES + N_GAS_TRANSFER_PROCESSES
 N_ELEMENTS = 6  # COD, O, C, N, P, H
 
 # ---------------------------------------------------------------------------
@@ -434,3 +436,30 @@ def get_petersen_matrix() -> np.ndarray:
     S[18, S_PO4] = I_P_BM - (1 - F_XI) * I_P_XS - F_XI * I_P_XI
 
     return S
+
+
+def get_gas_transfer_matrix() -> np.ndarray:
+    """
+    Return the 3x17 SI.3.1 Equilibrium phase block for rho20-rho22.
+
+    Row order:
+    - row 0: rho20 (dissolution of O2), +1 on S_O2
+    - row 1: rho21 (dissolution of CO2 as inorganic carbon), +1 on S_IC
+    - row 2: rho22 (dissolution/stripping of NH3 as ammoniacal nitrogen), +1 on S_NH
+
+    All other coefficients are zero.
+    """
+    s_gas = np.zeros((N_GAS_TRANSFER_PROCESSES, N_STATE))
+    s_gas[0, S_O2] = 1.0
+    s_gas[1, S_IC] = 1.0
+    s_gas[2, S_NH] = 1.0
+    return s_gas
+
+
+def get_petersen_matrix_with_gas_transfer() -> np.ndarray:
+    """
+    Return a 22x17 matrix by appending SI.3.1 rows 20-22 to biological rows.
+
+    This helper preserves get_petersen_matrix() as the biological 19x17 block.
+    """
+    return np.vstack((get_petersen_matrix(), get_gas_transfer_matrix()))
