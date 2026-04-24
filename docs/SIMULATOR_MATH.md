@@ -22,6 +22,7 @@ This document explains, in **textbook depth**, the **ordinary differential equat
 12. [Appendix D — Worked micro-examples: oxygen, inorganic carbon, ammonium](#sim-appendix-d)
 13. [Appendix E — Extended remarks: positivity, invariants, and sensitivity](#sim-appendix-e)
 14. [Appendix F — RHS evaluation flow (reference diagram)](#sim-appendix-f)
+15. [Appendix F.1 — Stage 6 implementation in `liquid_rhs.py`](#sim-appendix-f-impl)
 
 ---
 
@@ -722,6 +723,44 @@ flowchart TD
 - **`env*`** denotes an environment object whose **pH field** has been **aligned** to the **solved** pH if cardinal kinetics must stay consistent with SI.6 (see Part E).
 - **`Sfull` / `rhofull`** may be **constructed by concatenation** from existing `get_petersen_matrix()` and `calculate_gas_transfer()` outputs without storing a dense $22 \times 17$ matrix if only $\mathbf{S}^{\mathsf T}\boldsymbol{\rho}$ is needed.
 - **Transport** blocks (dilution, inflows) would appear as **parallel additions** to `rhs` when hydraulics are implemented.
+
+<a id="sim-appendix-f-impl"></a>
+
+### F.1 Stage 6 implementation in [`liquid_rhs.py`](../src/bioprocess_twin/simulator/liquid_rhs.py)
+
+The function **`evaluate_liquid_rhs`** implements one evaluation of the liquid-phase RHS: it does **not** advance time or sample a long horizon; a time integrator (Sprint 4 scope) would call it repeatedly. Internally it uses **`hydrochemistry_step`**, which chains SI.6 **solve pH** and SI.7 **gas transfer**; then it aligns **`EnvConditions.pH`** to the solved pH for **`calculate_rates`**, stacks **22** process rates, and forms **dC/dt** with the fixed **22×17** matrix from **`get_petersen_matrix_with_gas_transfer`**. (Diagnostics also run **`speciate_from_alba_totals`** for species reporting; that path is not drawn below.)
+
+```mermaid
+flowchart TD
+  subgraph inRhs [Inputs one call]
+    C["State C as StateVector"]
+    U["EnvConditions: T, pH nominal, I"]
+    G["GasTransferConditions optional"]
+  end
+
+  hc["hydrochemistry_step: pH + gas rates"]
+  C --> hc
+  U --> hc
+  G --> hc
+
+  alignEnv["EnvConditions: pH replaced by solved pH"]
+  hc --> alignEnv
+
+  rbio["calculate_rates: rho_bio length 19"]
+  C --> rbio
+  alignEnv --> rbio
+  rgas["rho_20-22 from step gas bundle"]
+  hc --> rgas
+
+  rhoFull["rho_full length 22: concat"]
+  rbio --> rhoFull
+  rgas --> rhoFull
+
+  sFull["S_full 22x17: get_petersen_matrix_with_gas_transfer"]
+  rhsNode["dC/dt 17: S_full transpose times rho_full"]
+  rhoFull --> rhsNode
+  sFull --> rhsNode
+```
 
 ---
 

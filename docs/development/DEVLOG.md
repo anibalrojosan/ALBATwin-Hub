@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-23 - Sprint phase1-03.5: Stage 6 liquid RHS, 22×17 assembly, and 'evaluate_liquid_rhs'](#devlog-20260423-p1035-stage6-liquid-rhs)
 - [2026-04-21 - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH](#devlog-20260421-simulator-math)
 - [2026-04-20 - Sprint phase1-03: Stages 2-5: speciation, T_ref 298.15 K, pH solver, SI.7 gas transfer, simulator API](#devlog-20260420-p103-stages-2-5)
 - [2026-04-19 - Sprint phase1-03: Stage 1 and Hydrochemistry gas–liquid driving forces](#devlog-20260419-p103-chemistry-stage1)
@@ -20,6 +21,32 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#devlog-20260312-phase1-spec-arch)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#devlog-20260312-phase1-alba-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#devlog-20260310-phase0-init)
+
+---
+
+<a id="devlog-20260423-p1035-stage6-liquid-rhs"></a>
+
+## [2026-04-23] - Sprint phase1-03.5: Stage 6 liquid RHS, 22×17 assembly, and `evaluate_liquid_rhs`
+
+### Context & Goals
+Deliver **phase1-03.5 / Stage 6** as a single **liquid-phase RHS** that matches the **full SI.3.1** picture (19 biological processes plus **Equilibrium** rows 20–22) while keeping the existing **19×17** `get_petersen_matrix()` surface stable. The goal is a callable **orchestrator** that resolves **pH (SI.6)**, **gas–liquid transfer (SI.7)**, and **biological kinetics** in one pass, and returns a structured payload for diagnostics and later **time integrators (Sprint 4)**. Work landed on branch **`feat/hydrochemistry-ode-rhs`**.
+
+### Technical Implementation
+- **`src/bioprocess_twin/models/stoichiometry.py`:** add **`N_GAS_TRANSFER_PROCESSES`**, **`N_PROCESSES_WITH_GAS_TRANSFER`**, **`get_gas_transfer_matrix()`** (3×17, one-hots for **O₂, S_IC, S_NH** per Table SI.3.1), and **`get_petersen_matrix_with_gas_transfer()`** (22×17); preserve **`get_petersen_matrix()`** as the **19** biological rows only.
+- **`src/bioprocess_twin/simulator/liquid_rhs.py`:** new **`evaluate_liquid_rhs`**, which calls **`hydrochemistry_step`**, then **`EnvConditions` with `pH` aligned to solved pH** for **`calculate_rates`**, stacks **ρ_bio (19)** and **ρ_gas (3)**, and forms **dC/dt = S_fullᵀ ρ_full**; return type **`AlbaLiquidRhsResult`** with **`dcdt_g_m3_d`**, rate vectors, **`PHSolveResult`**, **`GasTransferRates`**, and **`LiquidRhsDiagnostics`** (biomass snapshot, T/I/pH, **`AqueousSpeciesMolar`** for reporting).
+- **`src/bioprocess_twin/simulator/__init__.py`:** re-exports the Stage 6 public types and **`evaluate_liquid_rhs`**.
+- **`tests/unit/test_liquid_rhs_stage6.py`:** cover **S_full** shape, **bio + gas sparse** equivalence to the full 22-block product, **pH alignment** for kinetics vs a misleading input **pH**, O₂ **undersaturation vs supersaturation** sign, and a **pinned pH** regression.
+- **Docs (Stage 6 SSOT):** update **`STOICHIOMETRY.md`**, **`MATH_MODEL.md` §5**, and **`SIMULATOR_MATH.md` Appendix C**; extend **Appendix F** with **F.1**: a **Mermaid** diagram of the **implementation** path in **`liquid_rhs.py`** (one RHS evaluation, not a time loop).
+
+### 💡 Deep Dive: one RHS call versus a 6-month horizon
+**`evaluate_liquid_rhs` implements the vector field** (rate of change of state) at a **single** tuple **(StateVector, `EnvConditions`, `GasTransferConditions` bundle)**. It is the building block
+$$
+\dot{\mathbf{C}} = f(\mathbf{C}, \mathbf{u})
+$$
+repeated in spirit at each **internal** time in an ODE stepper. A **6-month** run with **hourly** output requires an **orchestrated** loop (or `solve_ivp` / LSODA) in **Sprint 4** that: advances **t**, applies **T(t)**, **light(t)**, inflow/HRT, and **records** **C** and **diagnostics** on a schedule. Stage 6 **does not** own that engine yet; it only makes **f** well-defined and SI-consistent for the **17**-component Casagli layout (no proton-closure path in this slice).
+
+### Next Steps
+- **Sprint 4 (`phase1-04`):** wrap `evaluate_liquid_rhs` in a time-stepping driver, schedules for **diel** forcing, **CSTR/transport** terms, result export, and long-horizon tests.
 
 ---
 
