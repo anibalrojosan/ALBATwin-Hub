@@ -3,8 +3,8 @@
 ### 1. Petersen Matrix
 
 This matrix shows the **dynamic interaction** between the processes and the variables. 
-*   **Rows (1–19):** The **biological** processes implemented in code as `get_petersen_matrix()` (e.g. phototrophic growth on NH₄⁺). The rate vector $\boldsymbol{\rho}$ has **19** entries, one per row.
-*   **Rows (20–22) in the SI diagram:** Dissolution of O₂, CO₂, and NH₃ (gas–liquid / equilibrium-style terms in the full ALBA table). They are **not** included in the package Petersen matrix yet; see `get_petersen_matrix()` docstring (“rho20–22 excluded; hydrochemistry sprint”).
+*   **Rows (1–19):** The **biological** processes implemented in code as `get_petersen_matrix()` (e.g. phototrophic growth on NH₄⁺). The rate vector $\boldsymbol{\rho}_{bio}$ has **19** entries, one per row.
+*   **Rows (20–22) in the SI diagram:** Dissolution of O₂, CO₂, and NH₃ (gas–liquid / equilibrium-style terms in the full ALBA table). Stage 6 exposes these rows in code via `get_gas_transfer_matrix()` and `get_petersen_matrix_with_gas_transfer()` for the 22-process liquid-phase assembly.
 *   **Columns:** **17** state variables in the Casagli SI layout, or **18** when using optional **O + proton** closure (extra column **`S_H_PROTON`**; see [MATH_MODEL.md](MATH_MODEL.md) §2.1 and [guides/OH_CLOSURE.md](mass_balances/guides/OH_CLOSURE.md)).
 *   **Cells ($\alpha_{i,j}$):** Indicate if a variable is consumed (negative value), produced (positive value) or not affected (empty/zero cell) by that specific process.
 
@@ -14,7 +14,7 @@ $$
 \frac{d\mathbf{C}}{dt} = \mathbf{S}^T \cdot \boldsymbol{\rho}
 $$
 
-where $\mathbf{S}$ has shape **19 × n** with **n = 17** or **n = 18**, $\boldsymbol{\rho} \in \mathbb{R}^{19}$, and $\mathbf{C} \in \mathbb{R}^n$ must match the column layout. Use `get_petersen_matrix_for_simulation(closure_mode=...)` together with `StateVector.to_array(variant=...)` so dimensions stay consistent.
+where the biological block uses **19 x n** with **n = 17** or **n = 18**, and Stage 6 liquid RHS uses a **22 x 17** assembly (`get_petersen_matrix_with_gas_transfer`) for SI rows 1-22 in the SI state layout. Use `get_petersen_matrix_for_simulation(closure_mode=...)` together with `StateVector.to_array(variant=...)` when running closure modes.
 
 | component j→ / process i↓ | X_ALG | X_AOB | X_NOB | X_H  | X_S  | X_I  | S_S   | S_I   | S_IC  | S_ND  | S_NH  | S_NO2 | S_NO3 | S_N2  | S_PO4 | S_O2  | S_H2O |
 |--------------------------|-------|-------|-------|------|------|------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|-------|

@@ -328,11 +328,11 @@ $$
 \frac{\mathrm{d}\mathbf{C}}{\mathrm{d}t} = \mathbf{S}^\top \boldsymbol{\rho}.
 $$
 
-**S** has **19 rows** (biological processes; rates ρ₁ … ρ₁₉ in §4). Column count matches the state layout (§2.1): **17 columns** on the Casagli SI basis, or **18 columns** when the optional proton inventory **S_H_PROTON** is appended for elemental H auditing. The rate vector **ρ** is always **19-dimensional**; closure modes change **S**, not the definition of **ρ**.
+`get_petersen_matrix()` keeps the **19-row biological block** (rates ρ1..ρ19 in §4). Column count matches the state layout (§2.1): **17 columns** on the Casagli SI basis, or **18 columns** when the optional proton inventory **S_H_PROTON** is appended for elemental H auditing. Stage 6 liquid RHS extends this with SI rows 20-22 through `get_petersen_matrix_with_gas_transfer()` and a 22-entry process vector in the SI 17-state path.
 
 ### 5.2 Scope of `get_petersen_matrix()`
 
-Some **full** ALBA diagrams add extra rows for **gas–liquid transfer or equilibrium** (e.g. dissolution of O₂, CO₂, NH₃). Those rows are **not** in `get_petersen_matrix()` yet; they belong to the hydrochemistry / gas-transfer workstream. Do not expect a one-to-one match between every auxiliary row in the SI diagram and this 19-row matrix.
+Some **full** ALBA diagrams add extra rows for **gas–liquid transfer or equilibrium** (e.g. dissolution of O₂, CO₂, NH₃). In code, those rows are now available through `get_gas_transfer_matrix()` and `get_petersen_matrix_with_gas_transfer()` for Stage 6 liquid RHS assembly. `get_petersen_matrix()` remains intentionally biological-only for backward compatibility and closure workflows.
 
 ### 5.3 Where coefficients come from
 
