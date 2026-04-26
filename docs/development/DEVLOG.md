@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-25 - ALBA Casagli et al. (2021) Article Review](#devlog-20260425-p103-alba-paper-reactor)
 - [2026-04-23 - Sprint phase1-03.5: Stage 6 liquid RHS, 22×17 assembly, and 'evaluate_liquid_rhs'](#devlog-20260423-p1035-stage6-liquid-rhs)
 - [2026-04-21 - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH](#devlog-20260421-simulator-math)
 - [2026-04-20 - Sprint phase1-03: Stages 2-5: speciation, T_ref 298.15 K, pH solver, SI.7 gas transfer, simulator API](#devlog-20260420-p103-stages-2-5)
@@ -21,6 +22,38 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#devlog-20260312-phase1-spec-arch)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#devlog-20260312-phase1-alba-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#devlog-20260310-phase0-init)
+
+---
+
+<a id="devlog-20260425-p103-alba-paper-reactor"></a>
+
+## [2026-04-25] - ALBA Casagli et al. (2021) Article Review
+
+### Context & Goals
+Re-read the **Casagli et al. (2021)** ALBA *Water Research* narrative (main text and SI cross-references) to align the **Python twin** not only with **tables and matrices** already encoded, but with **operating assumptions** the authors treat as normative: how the **raceway** is represented hydraulically, how **meteorology and water balance** enter, and which **observables** are meant to **constrain** the coupled biology–chemistry–gas system before finer state variables are trusted.
+
+### Technical Implementation
+- **Reactor idealization:** the modeled volume is a **fully mixed compartment** (AQUASIM-style CSTR); the paper cites **experimental validation of mixing** for **this** pilot (Hreiz et al., 2014), so the lumped control volume is an **evidence-backed** choice, not only a default template.
+- **Forcing and hydrology:** **temperature, wind, and relative humidity** come from a **regional** weather station (~30 km), while **rain** is **local** (in situ); **evaporation** follows **Buckingham** (Béchet et al., 2011). Seasonal scenarios stress that **evaporation plus rain** materially change **hydraulic dilution**, concentrations, and (downstream) **light attenuation**—a coupling many prior lagoon models omit.
+- **Numerical path in the paper:** the reference implementation is a **DAE** solved with **DASSL** inside AQUASIM. The stack as of now targets explicit **RHS** assembly (`evaluate_liquid_rhs`) plus a future **time integrator**—same reduced dynamics for the 17 liquid states if pH is solved inside each RHS call (BDF/LSODA family), not necessarily the same solver API as AQUASIM.
+- **Kinetic bookkeeping:** **Liebig (minimum)** applies only to **limiting substrates** (nutrients, bioavailable inorganic carbon, etc.); **light**, **temperature**, and **pH** modifiers sit **outside** that minimum as a **product** with growth and inhibition terms. **Inorganic carbon** in Monod form uses **CO₂ + HCO₃⁻** as the relevant **S_IC** pool for uptake kinetics (not CO₃²⁻ in that term); fractions come from the **pH–speciation** block.
+- **Biological scope choices** (for parity when we interpret fits): **autotrophic algae only** (no explicit mixotrophy), **predation folded into decay**, **hydrolysis** carried by **heterotrophs**, **two-step nitrification** (AOB/NOB) to allow **nitrite buildup**, and **algal respiration vs decay** split so **O₂** is tied to **respiration** while **decay** follows the paper’s RWQM1/BioAlgae2-style convention.
+- **Chemical / charge layer:** **Δ_CAT_AN** tracks **non-explicit ions** in the charge balance; **no biological process** consumes or produces it—its dynamics are driven by **influent alkalinity / ions**, which matters when we wire **inflows** and compare to **pH** trajectories.
+- **Gas–liquid:** **O₂, CO₂, and NH₃** exchange with the atmosphere (Fick-type formulation, **Henry** and **k_L a(T)** in SI); this is part of the same **closure** that makes **DO** and **pH** mutually informative.
+- **Calibration policy (paper):** **online pH and dissolved oxygen** are treated as **primary** identification targets because they **tightly couple** speciation, growth, respiration, nitrification, and stripping, and because they are **high-frequency** probes compared with mostly **daily** grab-style variables; **NH₄⁺, NO₂⁻, NO₃⁻, COD, OD, TSS**, etc., refine the fit **after** that anchor. A large parameter count (~72 in the text) makes this **identifiability-first** ordering practically necessary.
+- **Observation operators for validation:** **TSS**, **soluble COD**, and **algal biomass via optical density** are defined as **aggregates** of model states with **fixed conversion factors** from the paper/SI; any **plot-to-code** comparison must apply the same **lumped observables**, not raw `X_*` alone.
+
+### 💡 Deep Dive: why pH and DO online sit “above” the rest
+**pH** sets which **N** and **C** species actually participate in Monod terms and gas driving forces; **DO** closes the **oxygen balance** between **photosynthesis, heterotrophic and autotrophic respiration, nitrification, and gas transfer**. Together they **propagate** into almost every rate law and **algebraic** constraint, so matching them first **reduces non-unique** parameter sets that could otherwise agree on slower or sparser signals.
+
+### Next Steps
+- When implementing **Sprint 4** drivers (inflow, **HRT**, **diel** **T**/**light**, **evaporation**/**rain**), treat **hydraulic dilution** and **meteorology split** (regional vs local rain) as **first-class inputs**, not post-hoc scaling.
+- Cross-check **influent** handling for **alkalinity / Δ_CAT_AN** consistency before trusting long **pH** runs.
+
+**(optional)**
+
+- **Solver surface (DAE vs reduced ODE):** keep the default plan—**stiff ODE integrator** (`solve_ivp` with **BDF** / **LSODA**) on `dC/dt = f(C, t)` with **pH nested inside** `evaluate_liquid_rhs`—mathematically aligned with index-1 reduction of the paper’s DAE. Revisit **explicit DAE** solvers (**IDA** / SUNDIALS, or legacy **DASSL** bindings) only if numerical evidence demands it (step limits, initialization pain, or a reformulation that exposes algebraics in the solver state vector).
+- **Calibration / identification:** treat **forward simulation** (RHS + integrator + versioned **parameter vector**) as the **required** path for Sprint 4; defer **χ² minimization, Fisher bands, and automated simplex/secant loops** to a later workstream unless we need quantitative parity with Casagli figures or plant-specific fitting. When that phase starts, mirror the paper’s **identifiability-first** ordering: dominant weight on **online pH and DO**, then offline variables with the same **observation operators** ($TSS$, $COD_s$, $OD \rightarrow$ biomass).
 
 ---
 
