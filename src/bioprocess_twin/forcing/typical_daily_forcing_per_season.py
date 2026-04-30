@@ -2,10 +2,10 @@
 Typical daily environmental series by season, aligned with Casagli et al. (2021) Fig. 1.
 
 Construction: visual control points plus monotone piecewise cubic
-interpolation (`scipy.interpolate.PchipInterpolator`, Fritsch–Carlson). 
+interpolation (`scipy.interpolate.PchipInterpolator`, Fritsch–Carlson).
 
-Irradiance values at t ≥ 20 h are forced to 0 (night). Control knots at 20 h use 0 so the daytime curve 
-meets night without relying on the sparse 20–24 h segment alone. 
+Irradiance values at t ≥ 20 h are forced to 0 (night). Control knots at 20 h use 0 so the daytime curve
+meets night without relying on the sparse 20–24 h segment alone.
 
 Non-negative variables use `np.clip(..., 0, None)` after evaluation for tiny negative numerical noise.
 

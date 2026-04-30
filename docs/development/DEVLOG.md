@@ -38,9 +38,10 @@ Prepare **tabular and smooth diel series** consistent with **Casagli et al. (202
   `uv run python -m bioprocess_twin.forcing.typical_daily_forcing_per_season`
 - **Exported CSV (hourly, four seasons):** `data/forcing/typical_daily_patterns_of_temperature_irradiance_and_evaporation_rates.csv`: columns aligned with °C, µmol m⁻² s⁻¹ (PAR), and m³ h⁻¹ evaporation as stated in the module docstring.
 - **Notebook:** `notebooks/typical_daily_forcing_fig1.ipynb` rebuilds the three panels, compares smooth curves to control points, and saves PNGs under `figures/` at the repo root.
+- **Schedule API (`phase1-04a`):** `src/bioprocess_twin/forcing/diel_forcing_schedule.py` exposes `DielForcingSchedule` with `at` / `at_many` for dense grids, optional **RH, wind, rain, evaporation override,** and **inflow Q** as `None`, constants, or callables; `to_env_conditions(sample, ph=...)` maps kinetic inputs into **`EnvConditions`** (pH remains caller-supplied). Package exports live in `src/bioprocess_twin/forcing/__init__.py`.
 
 ### Next Steps
-- Map these series into the `phase1-04a` implementation path: construct **EnvConditions** schedules from the hourly table (and/or dense evaluation), confirm **unit compatibility** with gas transfer and biology modifiers, and extend with **wind, RH, rain**, and **$Q(t)$** when wiring full hydraulics (`phase1-04c` and beyond).
+- Wire **`DielForcingSchedule`** into **`phase1-04b`** (RHS wrapper): build **`EnvConditions`** along trajectories; keep optional hydrology fields for **`phase1-04c`** transport.
 
 ---
 
