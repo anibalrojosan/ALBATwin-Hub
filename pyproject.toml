@@ -25,6 +25,7 @@ packages = ["src/bioprocess_twin"]
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.2.0",
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
