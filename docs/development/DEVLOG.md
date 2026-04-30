@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-25 - Sprint phase1-04a prep: Fig. 1 daily forcing (T, PAR, evaporation)](#devlog-20260425-fig1-daily-forcing)
 - [2026-04-25 - ALBA Casagli et al. (2021) Article Review](#devlog-20260425-p103-alba-paper-reactor)
 - [2026-04-23 - Sprint phase1-03.5: Stage 6 liquid RHS, 22×17 assembly, and 'evaluate_liquid_rhs'](#devlog-20260423-p1035-stage6-liquid-rhs)
 - [2026-04-21 - Sprint phase1-03: SIMULATOR_MATH: ODEs, RHS, 22-row Petersen (SI.3.1), nested pH](#devlog-20260421-simulator-math)
@@ -22,6 +23,24 @@ This document is a log of the development process of the project. It is used to 
 - [2026-03-12 - Phase 1: Technical Specification & Architecture Definition](#devlog-20260312-phase1-spec-arch)
 - [2026-03-12 - Phase 1: ALBA Model Analysis & Data Digitization](#devlog-20260312-phase1-alba-digitization)
 - [2026-03-10 - Phase 0: Project Initialization and Foundation](#devlog-20260310-phase0-init)
+
+---
+
+<a id="devlog-20260425-fig1-daily-forcing"></a>
+
+## [2026-04-25] - Sprint phase1-04a prep: Fig. 1 daily forcing for simulator environmental drivers
+
+### Context & Goals
+Prepare **tabular and smooth diel series** consistent with **Casagli et al. (2021) Fig. 1** (typical daily patterns of **temperature**, **PAR / irradiance**, and **evaporation rate**) so they can feed **`EnvConditions`** and related hydrology inputs in **Sprint 4 / issue `phase1-04a`** (diel $T(t)$, surface irradiance, optional rain/evaporation schedules). The intent is to move from **paper graphics** to **versioned, reproducible forcing data** rather than ad hoc constants, supporting both **visual parity checks** and **simulator initial/boundary-style schedules** on a 24 h grid.
+
+### Technical Implementation
+- **Python module:** `src/bioprocess_twin/forcing/typical_daily_forcing_per_season.py` encodes **seasonal control points** (visual extraction from Fig. 1), evaluates **monotone** diel curves with **`PchipInterpolator`**, clips non-negative quantities, and sets **irradiance to zero for $t \geq 20\,\mathrm{h}$** (night) with **20 h knots at zero** to avoid non-physical overshoot between sparse night samples. Default CLI export:  
+  `uv run python -m bioprocess_twin.forcing.typical_daily_forcing_per_season`
+- **Exported CSV (hourly, four seasons):** `data/forcing/typical_daily_patterns_of_temperature_irradiance_and_evaporation_rates.csv`: columns aligned with °C, µmol m⁻² s⁻¹ (PAR), and m³ h⁻¹ evaporation as stated in the module docstring.
+- **Notebook:** `notebooks/typical_daily_forcing_fig1.ipynb` rebuilds the three panels, compares smooth curves to control points, and saves PNGs under `figures/` at the repo root.
+
+### Next Steps
+- Map these series into the `phase1-04a` implementation path: construct **EnvConditions** schedules from the hourly table (and/or dense evaluation), confirm **unit compatibility** with gas transfer and biology modifiers, and extend with **wind, RH, rain**, and **$Q(t)$** when wiring full hydraulics (`phase1-04c` and beyond).
 
 ---
 
