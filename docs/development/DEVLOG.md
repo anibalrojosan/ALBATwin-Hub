@@ -4,6 +4,7 @@ This document is a log of the development process of the project. It is used to 
 
 ## Index
 
+- [2026-04-30 - Sprint phase1-04b: ODE RHS wrapper (`evaluate_liquid_ode_rhs`, no transport)](#devlog-20260430-p104b-ode-rhs)
 - [2026-04-25 - Sprint phase1-04a prep: Fig. 1 daily forcing (T, PAR, evaporation)](#devlog-20260425-fig1-daily-forcing)
 - [2026-04-25 - ALBA Casagli et al. (2021) Article Review](#devlog-20260425-p103-alba-paper-reactor)
 - [2026-04-23 - Sprint phase1-03.5: Stage 6 liquid RHS, 22×17 assembly, and 'evaluate_liquid_rhs'](#devlog-20260423-p1035-stage6-liquid-rhs)
@@ -26,6 +27,24 @@ This document is a log of the development process of the project. It is used to 
 
 ---
 
+<a id="devlog-20260430-p104b-ode-rhs"></a>
+
+## [2026-04-30] - Sprint phase1-04b: ODE RHS wrapper (`evaluate_liquid_ode_rhs`, no transport)
+
+### Context & Goals
+Deliver **Sprint 4.2 / issue `phase1-04b`**: a callable **$\mathbf{f}(\mathbf{C}, t)$** in SciPy shape **`rhs(t, y)`** that pins the liquid ODE to **17** states via **`evaluate_liquid_rhs`**, with **temperature and irradiance** coming from **`DielForcingSchedule`** (phase1-04a). **No** CSTR dilution term yet (phase1-04c).
+
+### Technical Implementation
+- **`src/bioprocess_twin/simulator/liquid_ode_rhs.py`:** frozen **`LiquidOdeRhsProblem`** (schedule, `initial_ph` / `placeholder_ph_for_env` default 7, passthrough kwargs for gas and pH solver); **`evaluate_liquid_ode_rhs(t_hours, y, problem=...)`** and **`make_liquid_rhs`** for `solve_ivp`.
+- **`src/bioprocess_twin/simulator/liquid_rhs.py`:** public **`state_vector_from_y`** (SI-length 17 `ndarray` to **`StateVector`**).
+- **`tests/unit/test_liquid_ode_rhs.py`:** numeric parity vs direct **`evaluate_liquid_rhs`**, shape/finiteness, closure factory, day vs night forcing sanity, bad length error.
+- **`docs/SIMULATOR_MATH.md`:** Appendix C map row + F.1 pointer to **`liquid_ode_rhs.py`**.
+
+### Next Steps
+- **phase1-04c:** add **$(Q/V)(\mathbf{C}_\mathrm{in}-\mathbf{C})$** on top of this RHS; **phase1-04d:** stiff integrator driver.
+
+---
+
 <a id="devlog-20260425-fig1-daily-forcing"></a>
 
 ## [2026-04-25] - Sprint phase1-04a prep: Fig. 1 daily forcing for simulator environmental drivers
@@ -41,7 +60,8 @@ Prepare **tabular and smooth diel series** consistent with **Casagli et al. (202
 - **Schedule API (`phase1-04a`):** `src/bioprocess_twin/forcing/diel_forcing_schedule.py` exposes `DielForcingSchedule` with `at` / `at_many` for dense grids, optional **RH, wind, rain, evaporation override,** and **inflow Q** as `None`, constants, or callables; `to_env_conditions(sample, ph=...)` maps kinetic inputs into **`EnvConditions`** (pH remains caller-supplied). Package exports live in `src/bioprocess_twin/forcing/__init__.py`.
 
 ### Next Steps
-- Wire **`DielForcingSchedule`** into **`phase1-04b`** (RHS wrapper): build **`EnvConditions`** along trajectories; keep optional hydrology fields for **`phase1-04c`** transport.
+- **phase1-04b** (done 2026-04-30): ODE RHS wrapper **`evaluate_liquid_ode_rhs`** / **`LiquidOdeRhsProblem`** — see dedicated DEVLOG entry above.
+- **phase1-04c:** add **$(Q/V)(\mathbf{C}_\mathrm{in}-\mathbf{C})$** and hydraulics; optional hydrology fields on **`ForcingSample`** remain for that milestone.
 
 ---
 

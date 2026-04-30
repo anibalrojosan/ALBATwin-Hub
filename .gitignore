@@ -40,6 +40,7 @@ docs/papers/*
 docs/figures/*
 SPRINTS.md
 docs/mass_balances/oxygen-balance-verification.pdf
+docs/theory/*
 
 # --- IDEs & OS ---
 .vscode/

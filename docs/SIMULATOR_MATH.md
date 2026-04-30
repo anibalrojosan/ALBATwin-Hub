@@ -564,6 +564,7 @@ Each map in the pipeline (**totals** $\to$ **charge residual** $\to$ **pH** $\to
 | $\boldsymbol{\rho}_{\mathrm{bio}}$ | [`src/bioprocess_twin/models/kinetics.py`](../src/bioprocess_twin/models/kinetics.py) (`calculate_rates`, `EnvConditions`) |
 | $\boldsymbol{\rho}_{\mathrm{gas}}$, Henry, k_La scaling | [`src/bioprocess_twin/models/gas_transfer.py`](../src/bioprocess_twin/models/gas_transfer.py) (`calculate_gas_transfer`) |
 | Stage 6 liquid RHS assembler | [`src/bioprocess_twin/simulator/liquid_rhs.py`](../src/bioprocess_twin/simulator/liquid_rhs.py) (`evaluate_liquid_rhs`, `AlbaLiquidRhsResult`) |
+| ODE vector field wrapper (Sprint 4.1 / 04b): $(t,\mathbf{y})\mapsto \mathrm{d}\mathbf{C}/\mathrm{d}t$ with diel forcing, no transport | [`src/bioprocess_twin/simulator/liquid_ode_rhs.py`](../src/bioprocess_twin/simulator/liquid_ode_rhs.py) (`evaluate_liquid_ode_rhs`, `LiquidOdeRhsProblem`, `make_liquid_rhs`) |
 | Speciation, charge residual, $\mathcal{H}$ | [`src/bioprocess_twin/models/chemistry.py`](../src/bioprocess_twin/models/chemistry.py) (`solve_pH`, helpers) |
 | Facade $\to$ pH + gas bundle | [`src/bioprocess_twin/models/hydrochemistry_api.py`](../src/bioprocess_twin/models/hydrochemistry_api.py) (`hydrochemistry_step`) |
 | Optional extended $\mathbf{S}$, closures | [`src/bioprocess_twin/models/stoichiometry_closure.py`](../src/bioprocess_twin/models/stoichiometry_closure.py) |
@@ -729,6 +730,8 @@ flowchart TD
 ### F.1 Stage 6 implementation in [`liquid_rhs.py`](../src/bioprocess_twin/simulator/liquid_rhs.py)
 
 The function **`evaluate_liquid_rhs`** implements one evaluation of the liquid-phase RHS: it does **not** advance time or sample a long horizon; a time integrator (Sprint 4 scope) would call it repeatedly. Internally it uses **`hydrochemistry_step`**, which chains SI.6 **solve pH** and SI.7 **gas transfer**; then it aligns **`EnvConditions.pH`** to the solved pH for **`calculate_rates`**, stacks **22** process rates, and forms **dC/dt** with the fixed **22×17** matrix from **`get_petersen_matrix_with_gas_transfer`**. (Diagnostics also run **`speciate_from_alba_totals`** for species reporting; that path is not drawn below.)
+
+For **`scipy.integrate.solve_ivp`**, the thin entry point **`evaluate_liquid_ode_rhs`** in [`liquid_ode_rhs.py`](../src/bioprocess_twin/simulator/liquid_ode_rhs.py) maps clock time and $\mathbf{y}$ to **`EnvConditions`** via **`DielForcingSchedule`** (Fig. 1–based forcing) and returns the same **17**-component derivative as **`evaluate_liquid_rhs`**, without CSTR transport (added later in Sprint 4.3).
 
 ```mermaid
 flowchart TD

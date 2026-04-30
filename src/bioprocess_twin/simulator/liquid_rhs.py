@@ -81,8 +81,8 @@ class AlbaLiquidRhsResult:
     diagnostics: LiquidRhsDiagnostics
 
 
-def _as_state_vector(state: StateVector | np.ndarray) -> StateVector:
-    """Normalize user state input to StateVector in SI 17-state layout."""
+def state_vector_from_y(state: StateVector | np.ndarray) -> StateVector:
+    """Coerce SI-layout length-17 ``ndarray`` (or ``StateVector``) to ``StateVector``."""
     if isinstance(state, StateVector):
         return state
     arr = np.asarray(state, dtype=np.float64).ravel()
@@ -125,7 +125,7 @@ def evaluate_liquid_rhs(
     - compute rho_bio (19) and rho_gas (3)
     - assemble rho_full (22) and dC/dt (17) via S_full^T @ rho_full
     """
-    st = _as_state_vector(state)
+    st = state_vector_from_y(state)
     params = kinetic_parameters if kinetic_parameters is not None else default_alba()
     theta_value = float(theta_kla) if theta_kla is not None else float(params.theta_kla)
 
@@ -158,9 +158,7 @@ def evaluate_liquid_rhs(
     )
     rho_full = np.concatenate((rho_bio, rho_gas))
     if rho_full.size != N_PROCESSES_WITH_GAS_TRANSFER:
-        raise RuntimeError(
-            f"rho_full must have length {N_PROCESSES_WITH_GAS_TRANSFER}, got {rho_full.size}"
-        )
+        raise RuntimeError(f"rho_full must have length {N_PROCESSES_WITH_GAS_TRANSFER}, got {rho_full.size}")
     if rho_bio.size != N_PROCESSES:
         raise RuntimeError(f"rho_bio must have length {N_PROCESSES}, got {rho_bio.size}")
 
